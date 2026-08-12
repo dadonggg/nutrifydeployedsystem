@@ -147,8 +147,8 @@ require __DIR__ . '/../partials/header.php';
                     <!-- Card Header -->
                     <div class="p-3 text-white d-flex align-items-center justify-content-between" style="background: linear-gradient(135deg, #0e1c12 0%, #164a20 60%, #1B6B2A 100%);">
                         <div class="d-flex align-items-center gap-2">
-                            <i class="bi bi-lightning-fill text-success fs-5"></i>
-                            <span class="fw-bold tracking-wide" style="font-size: .85rem; letter-spacing: 0.5px;">NUTRIFY MEMBER</span>
+                            <i class="bi bi-lightning-fill text-warning fs-5"></i>
+                            <span class="fw-bold tracking-wide text-white" style="font-size: .85rem; letter-spacing: 0.5px; color: #ffffff !important;">NUTRIFY MEMBER</span>
                         </div>
                         <span class="badge bg-success bg-opacity-20 text-success border border-success border-opacity-30" style="font-size: .65rem;">ACTIVE</span>
                     </div>
@@ -193,7 +193,7 @@ require __DIR__ . '/../partials/header.php';
                 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
                 <script>
                     document.addEventListener('DOMContentLoaded', function() {
-                        const token = "<?= esc_attr($mDetails['qr_token'] ?? '') ?>";
+                        const token = "<?= htmlspecialchars($mDetails['qr_token'] ?? '') ?>";
                         if (token) {
                             new QRCode(document.getElementById("cardQrCode"), {
                                 text: token,

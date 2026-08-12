@@ -369,10 +369,6 @@ final class MembershipController extends Controller
         ]);
     }
 
-    /**
-     * View member's premium Digital ID Card.
-     * GET: index.php?r=membership/myid
-     */
     public function myidAction(): void
     {
         $user = $this->requireLogin();
@@ -383,6 +379,17 @@ final class MembershipController extends Controller
         if (!$member) {
             $_SESSION['error'] = 'Active membership is required to access your Digital ID Card.';
             $this->redirect('membership/verifycode');
+        }
+
+        // Auto-generation safeguard if empty/null
+        if (empty($member['qr_token']) || empty($member['member_id_number'])) {
+            $qrToken = !empty($member['qr_token']) ? $member['qr_token'] : GymMember::generateQrToken();
+            $memberIdNumber = !empty($member['member_id_number']) ? $member['member_id_number'] : GymMember::generateMemberId((int)$member['id']);
+            $issueDate = !empty($member['issue_date']) ? $member['issue_date'] : date('Y-m-d');
+            
+            $memberModel->stampMemberCard((int)$member['id'], $qrToken, $memberIdNumber, $issueDate);
+            // Refresh member details
+            $member = $memberModel->findByUserId((int)$user['id']);
         }
 
         $this->view('membership/member_id_card', [

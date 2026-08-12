@@ -36,8 +36,8 @@ if (!empty($member['expiration_date']) && strtotime($member['expiration_date']) 
                 <!-- Header -->
                 <div class="p-3 text-white d-flex align-items-center justify-content-between" style="background: linear-gradient(135deg, #0e1c12 0%, #164a20 60%, #1B6B2A 100%);">
                     <div class="d-flex align-items-center gap-2">
-                        <i class="bi bi-lightning-fill text-success fs-5"></i>
-                        <span class="fw-bold tracking-wide" style="font-size: .85rem; letter-spacing: 0.8px;">NUTRIFY MEMBER</span>
+                        <i class="bi bi-lightning-fill text-warning fs-5"></i>
+                        <span class="fw-bold tracking-wide text-white" style="font-size: .85rem; letter-spacing: 0.8px; color: #ffffff !important;">NUTRIFY MEMBER</span>
                     </div>
                     <?php if ($expired): ?>
                         <span class="badge bg-danger text-white border border-danger border-opacity-35" style="font-size: .65rem; padding: 4px 8px; border-radius: 12px;">EXPIRED</span>
@@ -118,7 +118,7 @@ if (!empty($member['expiration_date']) && strtotime($member['expiration_date']) 
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const qrToken = "<?= esc_attr($member['qr_token'] ?? '') ?>";
+    const qrToken = "<?= htmlspecialchars($member['qr_token'] ?? '') ?>";
     if (qrToken) {
         new QRCode(document.getElementById("memberCardQr"), {
             text: qrToken,
@@ -195,18 +195,18 @@ function exportCardAsImage() {
         ctx.font = "bold 36px sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText("<?= esc_attr($initials) ?>", 200, 150);
+        ctx.fillText("<?= htmlspecialchars($initials) ?>", 200, 150);
     }
 
     // Name & Member ID Number
     ctx.textAlign = "center";
     ctx.fillStyle = "#212529";
     ctx.font = "bold 20px sans-serif";
-    ctx.fillText("<?= esc_attr($fullname) ?>", 200, 235);
+    ctx.fillText("<?= htmlspecialchars($fullname) ?>", 200, 235);
 
     ctx.fillStyle = "#1B6B2A";
     ctx.font = "bold 16px Courier, monospace";
-    ctx.fillText("<?= esc_attr($member['member_id_number'] ?? 'NTF-PENDING') ?>", 200, 265);
+    ctx.fillText("<?= htmlspecialchars($member['member_id_number'] ?? 'NTF-PENDING') ?>", 200, 265);
 
     // Generate QR Code on Canvas
     // Find the canvas/image inside the qrcode container
@@ -232,13 +232,13 @@ function exportCardAsImage() {
 
     ctx.fillStyle = "#212529";
     ctx.font = "bold 13px sans-serif";
-    ctx.fillText("<?= esc_attr(ucfirst(str_replace('_', ' ', $member['payment_type'] ?? 'Standard'))) ?>", 35, 510);
-    ctx.fillText("<?= esc_attr(!empty($member['expiration_date']) ? date('M d, Y', strtotime($member['expiration_date'])) : 'Never') ?>", 220, 510);
+    ctx.fillText("<?= htmlspecialchars(ucfirst(str_replace('_', ' ', $member['payment_type'] ?? 'Standard'))) ?>", 35, 510);
+    ctx.fillText("<?= htmlspecialchars(!empty($member['expiration_date']) ? date('M d, Y', strtotime($member['expiration_date'])) : 'Never') ?>", 220, 510);
 
     // Trigger file download
     const dataUrl = canvas.toDataURL("image/png");
     const link = document.createElement("a");
-    link.download = "Nutrify_ID_Card_" + "<?= esc_attr($member['member_id_number'] ?? 'Pending') ?>" + ".png";
+    link.download = "Nutrify_ID_Card_" + "<?= htmlspecialchars($member['member_id_number'] ?? 'Pending') ?>" + ".png";
     link.href = dataUrl;
     link.click();
 }
