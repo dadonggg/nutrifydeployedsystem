@@ -32,6 +32,8 @@ final class AccountController extends Controller
         // Fetch documents
         $docModel = new \App\Models\UserDocument();
         $userDocs = $docModel->tableExists() ? $docModel->findByUserId((int)$user['id']) : [];
+        // All certification rows (for multi-cert display)
+        $allCerts = $docModel->tableExists() ? $docModel->findAllCertsByUserId((int)$user['id']) : [];
 
         // Check if there is an active/pending staff application
         $appModel = new \App\Models\StaffApplication();
@@ -42,6 +44,7 @@ final class AccountController extends Controller
             'success'  => $success,
             'error'    => $error,
             'userDocs' => $userDocs,
+            'allCerts' => $allCerts,
             'staffApp' => $staffApp,
         ]);
     }
@@ -111,6 +114,54 @@ final class AccountController extends Controller
         (new \App\Models\UserDocument())->upsert($userId, $docType, $relativeUrl, $specialization);
 
         $_SESSION['account_success'] = ucfirst(str_replace('_', ' ', $docType)) . ' uploaded successfully!';
+        $this->redirect('account/settings');
+    }
+
+    /**
+     * DELETE a user document by ID (validates ownership, cleans up disk file).
+     * Accepts POST with doc_id. Returns JSON when called via XHR, or redirects.
+     */
+    public function deletedocumentAction(): void
+    {
+        $user = $this->requireAuth();
+        $userId = (int)$user['id'];
+        $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) || ($_SERVER['HTTP_ACCEPT'] ?? '') === 'application/json';
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            if ($isAjax) { header('Content-Type: application/json'); echo json_encode(['success' => false, 'error' => 'Invalid method']); exit; }
+            $this->redirect('account/settings');
+        }
+
+        $docId = (int)($_POST['doc_id'] ?? 0);
+        if ($docId <= 0) {
+            if ($isAjax) { header('Content-Type: application/json'); echo json_encode(['success' => false, 'error' => 'Invalid document ID']); exit; }
+            $_SESSION['account_error'] = 'Invalid document ID.';
+            $this->redirect('account/settings');
+        }
+
+        $docModel = new \App\Models\UserDocument();
+        $docPath = $docModel->deleteById($docId, $userId);
+
+        if ($docPath === null) {
+            if ($isAjax) { header('Content-Type: application/json'); echo json_encode(['success' => false, 'error' => 'Document not found or access denied']); exit; }
+            $_SESSION['account_error'] = 'Document not found or access denied.';
+            $this->redirect('account/settings');
+        }
+
+        // Remove physical file from disk
+        if ($docPath !== '') {
+            $fullPath = BASE_PATH . '/public/' . ltrim($docPath, '/');
+            if (is_file($fullPath)) {
+                @unlink($fullPath);
+            }
+        }
+
+        if ($isAjax) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => true, 'message' => 'Document deleted successfully.']);
+            exit;
+        }
+        $_SESSION['account_success'] = 'Document deleted successfully.';
         $this->redirect('account/settings');
     }
 

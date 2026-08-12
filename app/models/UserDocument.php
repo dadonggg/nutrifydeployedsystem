@@ -136,4 +136,35 @@ final class UserDocument extends Model
             $stmt2->execute([':uid' => $userId, ':spec' => $specialization, ':spec2' => $specialization]);
         }
     }
+
+    /**
+     * Delete a document by its ID, enforcing user ownership.
+     * Returns the doc_path of the deleted record so the caller can remove the file.
+     */
+    public function deleteById(int $docId, int $userId): ?string
+    {
+        // Fetch to verify ownership and get path
+        $stmt = $this->db()->prepare('SELECT doc_path FROM user_documents WHERE id = :id AND user_id = :uid LIMIT 1');
+        $stmt->execute([':id' => $docId, ':uid' => $userId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$row) {
+            return null; // Not found or not owned by this user
+        }
+        $this->db()->prepare('DELETE FROM user_documents WHERE id = :id AND user_id = :uid')
+             ->execute([':id' => $docId, ':uid' => $userId]);
+        return $row['doc_path'];
+    }
+
+    /**
+     * Return ALL certification rows for a user (unkeyed), ordered newest-first.
+     * Used to render multiple certification upload slots.
+     */
+    public function findAllCertsByUserId(int $userId): array
+    {
+        $stmt = $this->db()->prepare(
+            "SELECT * FROM user_documents WHERE user_id = :uid AND doc_type = 'certification' ORDER BY updated_at DESC"
+        );
+        $stmt->execute([':uid' => $userId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 }

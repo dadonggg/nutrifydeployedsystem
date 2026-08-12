@@ -122,18 +122,94 @@ require __DIR__ . '/../partials/header.php';
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    <button type="submit" name="action" value="paid" class="btn btn-success"><i class="bi bi-check-circle me-1"></i>Confirm Payment & Generate Code</button>
+                     <button type="submit" name="action" value="paid" class="btn btn-success"><i class="bi bi-check-circle me-1"></i>Confirm Payment &amp; Generate Member ID</button>
                 </form>
             </div>
         </div>
 
         <?php elseif ($app['status'] === 'approved'): ?>
+        <?php
+            $gymMemberModel = new \App\Models\GymMember();
+            $mDetails = $gymMemberModel->findByUserId((int)$app['user_id']);
+        ?>
         <div class="card mb-3">
+            <div class="card-header bg-success text-white px-3 py-2">
+                <h2 class="h6 mb-0"><i class="bi bi-shield-check me-1"></i>Membership Active</h2>
+            </div>
             <div class="card-body text-center py-4">
-                <i class="bi bi-check-circle display-4 text-success"></i>
-                <p class="mt-2 mb-0">This membership has been <strong>approved</strong>.</p>
+                <i class="bi bi-check-circle display-5 text-success mb-2"></i>
+                <h3 class="h5 fw-bold mb-1">Approved &amp; Paid</h3>
+                <p class="text-muted small">The member record has been created and the digital ID card is active.</p>
+
+                <?php if ($mDetails): ?>
+                <!-- Digital ID Card Preview -->
+                <div class="mx-auto my-4 text-start shadow-sm" style="max-width: 320px; border-radius: 16px; overflow: hidden; border: 1px solid #1B6B2A; background: #fff;">
+                    <!-- Card Header -->
+                    <div class="p-3 text-white d-flex align-items-center justify-content-between" style="background: linear-gradient(135deg, #0e1c12 0%, #164a20 60%, #1B6B2A 100%);">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-lightning-fill text-success fs-5"></i>
+                            <span class="fw-bold tracking-wide" style="font-size: .85rem; letter-spacing: 0.5px;">NUTRIFY MEMBER</span>
+                        </div>
+                        <span class="badge bg-success bg-opacity-20 text-success border border-success border-opacity-30" style="font-size: .65rem;">ACTIVE</span>
+                    </div>
+                    
+                    <!-- Card Body -->
+                    <div class="p-3 text-center">
+                        <div class="d-flex justify-content-center mb-2">
+                            <?php if (!empty($mDetails['profile_picture_url'])): ?>
+                                <img src="public/<?= htmlspecialchars($mDetails['profile_picture_url']) ?>" alt="Avatar" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid #1B6B2A;">
+                            <?php else: ?>
+                                <div class="bg-success text-white d-flex align-items-center justify-content-center fw-bold" style="width: 80px; height: 80px; border-radius: 50%; font-size: 2rem; background: linear-gradient(135deg, #1B6B2A 0%, #2E8B3E 100%); border: 3px solid #1B6B2A;">
+                                    <?= strtoupper(substr($app['first_name'] ?? 'U', 0, 1) . substr($app['last_name'] ?? '', 0, 1)) ?>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                        
+                        <h4 class="h6 fw-bold text-dark mb-1"><?= htmlspecialchars($app['first_name'] . ' ' . $app['last_name']) ?></h4>
+                        <div class="text-success fw-bold font-monospace mb-3" style="font-size: .85rem; letter-spacing: 1px;">
+                            ID: <?= htmlspecialchars($mDetails['member_id_number'] ?? 'N/A') ?>
+                        </div>
+                        
+                        <!-- QR Code Area -->
+                        <div class="d-flex justify-content-center p-2 mb-3 bg-light rounded-3" style="width: 120px; height: 120px; margin: 0 auto;">
+                            <div id="cardQrCode"></div>
+                        </div>
+                        
+                        <!-- Details list -->
+                        <div class="row g-2 border-top pt-3 text-start text-muted" style="font-size: .75rem;">
+                            <div class="col-6">
+                                <span class="d-block text-uppercase text-secondary" style="font-size: .6rem; font-weight: 600;">Plan Type</span>
+                                <strong class="text-dark"><?= ucfirst(str_replace('_', ' ', $mDetails['payment_type'] ?? 'N/A')) ?></strong>
+                            </div>
+                            <div class="col-6">
+                                <span class="d-block text-uppercase text-secondary" style="font-size: .6rem; font-weight: 600;">Expires</span>
+                                <strong class="text-dark"><?= !empty($mDetails['expiration_date']) ? date('M d, Y', strtotime($mDetails['expiration_date'])) : 'Never' ?></strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Load QRCode library to render preview -->
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+                <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        const token = "<?= esc_attr($mDetails['qr_token'] ?? '') ?>";
+                        if (token) {
+                            new QRCode(document.getElementById("cardQrCode"), {
+                                text: token,
+                                width: 104,
+                                height: 104,
+                                colorDark : "#0e1c12",
+                                colorLight : "#f8f9fa",
+                                correctLevel : QRCode.CorrectLevel.H
+                            });
+                        }
+                    });
+                </script>
+                <?php endif; ?>
+
                 <?php if ($app['admin_feedback']): ?>
-                    <p class="small text-muted mt-2"><?= htmlspecialchars($app['admin_feedback']) ?></p>
+                    <p class="small text-muted mt-2 mb-0"><strong>Admin Note:</strong> <?= htmlspecialchars($app['admin_feedback']) ?></p>
                 <?php endif; ?>
             </div>
         </div>

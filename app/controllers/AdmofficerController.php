@@ -91,8 +91,15 @@ final class AdmofficerController extends Controller
                 $paymentType = $app['payment_type'] ?? 'regular_monthly';
                 $paymentAmount = round((float)($app['payment_amount'] ?? 0), 2);
                 $code = GymMember::generateCode();
-                (new GymMember())->create((int)$app['user_id'], $id, $code, $trainerId, $paymentType, $paymentAmount);
-                $appModel->updateStatus($id, 'approved', 'Payment confirmed. Code: ' . $code, (int)$user['id']);
+                $memberId = (new GymMember())->create((int)$app['user_id'], $id, $code, $trainerId, $paymentType, $paymentAmount);
+                
+                // Stamp Digital ID Card details: qr_token, member_id_number, issue_date
+                $qrToken = GymMember::generateQrToken();
+                $memberIdNumber = GymMember::generateMemberId($memberId);
+                $issueDate = date('Y-m-d');
+                (new GymMember())->stampMemberCard($memberId, $qrToken, $memberIdNumber, $issueDate);
+                
+                $appModel->updateStatus($id, 'approved', 'Payment confirmed. Member ID: ' . $memberIdNumber, (int)$user['id']);
                 
                 // Record revenue in financial_records for gym owner
                 if (!empty($app['gym_owner_id'])) {
@@ -116,9 +123,9 @@ final class AdmofficerController extends Controller
                         'info', 'membership/verifycode');
                 }
                 $this->notify((int)$app['user_id'], 'Membership Approved!',
-                    'Payment confirmed. Your membership code: ' . $code,
+                    'Payment confirmed. Your Member ID: ' . $memberIdNumber,
                     'success', 'membership/verifycode');
-                $success = 'Payment confirmed! Code: ' . $code;
+                $success = 'Payment confirmed! Member ID: ' . $memberIdNumber;
             } elseif ($action === 'assign_trainer') {
                 // Assign trainer to an existing approved member
                 if ($trainerId) {
@@ -385,6 +392,118 @@ final class AdmofficerController extends Controller
             echo json_encode(['success' => true]);
         } catch (\PDOException $e) {
             echo json_encode(['success' => false, 'error' => 'Database error: ' . $e->getMessage()]);
+        }
+        exit;
+    }
+
+    /**
+     * Show QR Scanner view for Admin Officer.
+     * GET: index.php?r=admofficer/scanqr
+     */
+    public function scanqrAction(): void
+    {
+        $user = $this->requireOfficer();
+        $this->view('admofficer/scan_qr', ['user' => $user]);
+    }
+
+    /**
+     * AJAX endpoint to look up a member's QR token, return info + status,
+     * and automatically check them in (log attendance) if active.
+     * POST: index.php?r=admofficer/qrlookup
+     */
+    public function qrlookupAction(): void
+    {
+        header('Content-Type: application/json');
+        $user = $this->requireOfficer();
+
+        $token = trim((string)($_POST['token'] ?? ''));
+        if ($token === '') {
+            echo json_encode(['success' => false, 'error' => 'Invalid QR token provided.']);
+            exit;
+        }
+
+        $memberModel = new GymMember();
+        $member = $memberModel->findByQrToken($token);
+
+        if (!$member) {
+            echo json_encode(['success' => false, 'error' => 'Member not found with this ID card.']);
+            exit;
+        }
+
+        // Expiration check
+        $expired = false;
+        if (!empty($member['expiration_date']) && strtotime($member['expiration_date']) < time()) {
+            $expired = true;
+        }
+
+        // Format dates
+        $issue = !empty($member['issue_date']) ? date('M d, Y', strtotime($member['issue_date'])) : 'N/A';
+        $expiry = !empty($member['expiration_date']) ? date('M d, Y', strtotime($member['expiration_date'])) : 'Never';
+
+        // Check if already checked in today
+        $attendanceModel = new AttendanceLog();
+        $alreadyCheckedIn = $attendanceModel->hasCheckedInToday((int)$member['id']);
+
+        $res = [
+            'success' => true,
+            'member_id' => $member['id'],
+            'member_id_number' => $member['member_id_number'] ?? 'N/A',
+            'fullname' => $member['fullname'],
+            'photo' => !empty($member['profile_picture_url']) ? 'public/' . ltrim($member['profile_picture_url'], '/') : null,
+            'plan' => ucfirst(str_replace('_', ' ', $member['payment_type'])),
+            'issue_date' => $issue,
+            'expiration_date' => $expiry,
+            'status' => $expired ? 'Expired' : 'Active',
+            'already_checked_in' => $alreadyCheckedIn
+        ];
+
+        echo json_encode($res);
+        exit;
+    }
+
+    /**
+     * AJAX endpoint to log attendance for a scanned active member.
+     * POST: index.php?r=admofficer/logattendance
+     */
+    public function logattendanceAction(): void
+    {
+        header('Content-Type: application/json');
+        $user = $this->requireOfficer();
+
+        $memberId = (int)($_POST['member_id'] ?? 0);
+        if ($memberId <= 0) {
+            echo json_encode(['success' => false, 'error' => 'Invalid member ID.']);
+            exit;
+        }
+
+        $memberModel = new GymMember();
+        $member = $memberModel->findById($memberId);
+
+        if (!$member) {
+            echo json_encode(['success' => false, 'error' => 'Member not found.']);
+            exit;
+        }
+
+        // Prevent check-in if expired
+        if (!empty($member['expiration_date']) && strtotime($member['expiration_date']) < time()) {
+            echo json_encode(['success' => false, 'error' => 'Membership has expired. Cannot log attendance.']);
+            exit;
+        }
+
+        $attendanceModel = new AttendanceLog();
+        
+        // Prevent duplicate logs for the same day
+        if ($attendanceModel->hasCheckedInToday($memberId)) {
+            echo json_encode(['success' => false, 'error' => 'Attendance already logged for today.']);
+            exit;
+        }
+
+        $logId = $attendanceModel->createByToken($memberId, $member['qr_token'] ?? 'DIRECT_CHECKIN');
+
+        if ($logId > 0) {
+            echo json_encode(['success' => true, 'message' => 'Attendance logged successfully! Welcome, ' . $member['fullname']]);
+        } else {
+            echo json_encode(['success' => false, 'error' => 'Failed to record attendance in logs.']);
         }
         exit;
     }

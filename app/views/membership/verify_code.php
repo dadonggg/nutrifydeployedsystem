@@ -22,9 +22,15 @@ require __DIR__ . '/../partials/header.php';
             <div class="card-header px-3 py-2"><h2 class="h6 mb-0">Enter Membership Code</h2></div>
             <div class="card-body">
                 <?php if ($gymMember): ?>
-                    <div class="mb-3 p-3 rounded" style="background:rgba(27,107,42,.05)">
-                        <small class="text-muted">Your code:</small>
-                        <div class="fw-bold fs-5" style="color:#1B6B2A"><?= htmlspecialchars($gymMember['membership_code']) ?></div>
+                    <div class="mb-3 p-3 rounded border border-success border-opacity-20" style="background:rgba(27,107,42,.03)">
+                        <small class="text-muted d-block mb-1">Your Registered Membership Code:</small>
+                        <div class="fw-bold fs-5 mb-3" style="color:#1B6B2A"><?= htmlspecialchars($gymMember['membership_code']) ?></div>
+                        
+                        <div class="d-grid">
+                            <a href="index.php?r=membership/myid" class="btn btn-success rounded-pill fw-bold btn-sm">
+                                <i class="bi bi-person-badge me-1"></i> View My Digital ID Card
+                            </a>
+                        </div>
                     </div>
                 <?php endif; ?>
                 <form method="post" class="vstack gap-3">

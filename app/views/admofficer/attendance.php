@@ -4,9 +4,14 @@ $pageTitle = 'Attendance Log';
 require __DIR__ . '/../partials/header.php';
 ?>
 
-<div class="mb-4">
-    <h1 class="h3 mb-1"><i class="bi bi-calendar-check me-2"></i>Attendance Log</h1>
-    <p class="text-muted">Member check-in records from membership code verification.</p>
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h1 class="h3 mb-1"><i class="bi bi-calendar-check me-2"></i>Attendance Log</h1>
+        <p class="text-muted mb-0">Member check-in records from membership code verification and QR scans.</p>
+    </div>
+    <a href="index.php?r=admofficer/scanqr" class="btn btn-success px-3 rounded-pill fw-bold">
+        <i class="bi bi-qr-code-scan me-1"></i> Scan Member QR
+    </a>
 </div>
 
 <div class="card">

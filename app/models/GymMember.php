@@ -56,6 +56,23 @@ final class GymMember extends Model
         return $row ?: null;
     }
 
+    /**
+     * Find a member by their QR token (for scan-based attendance check-in).
+     * Returns member info joined with user's full name and photo.
+     */
+    public function findByQrToken(string $token): ?array
+    {
+        $stmt = $this->db()->prepare(
+            'SELECT gm.*, u.fullname, u.email, u.profile_picture_url
+             FROM gym_members gm
+             JOIN users u ON u.id = gm.user_id
+             WHERE gm.qr_token = :t LIMIT 1'
+        );
+        $stmt->execute([':t' => $token]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
+
     public function findAll(): array
     {
         return $this->db()->query(
@@ -122,8 +139,50 @@ final class GymMember extends Model
         $stmt->execute([':tid' => $trainerId, ':id' => $memberId]);
     }
 
+    /**
+     * Update the QR token for a member (used on renewal if new token is desired).
+     */
+    public function updateQrToken(int $memberId, string $token): void
+    {
+        $stmt = $this->db()->prepare('UPDATE gym_members SET qr_token = :t WHERE id = :id');
+        $stmt->execute([':t' => $token, ':id' => $memberId]);
+    }
+
+    /**
+     * Stamp a member record with QR token + member ID number + issue date.
+     * Called immediately after create() in AdmofficerController.
+     */
+    public function stampMemberCard(int $memberId, string $qrToken, string $memberIdNumber, string $issueDate): void
+    {
+        try {
+            $stmt = $this->db()->prepare(
+                'UPDATE gym_members SET qr_token = :t, member_id_number = :mid, issue_date = :isd WHERE id = :id'
+            );
+            $stmt->execute([':t' => $qrToken, ':mid' => $memberIdNumber, ':isd' => $issueDate, ':id' => $memberId]);
+        } catch (\PDOException $e) {
+            // Gracefully handle if columns don't exist yet (migration not run)
+        }
+    }
+
     public static function generateCode(): string
     {
         return 'GYM-' . strtoupper(bin2hex(random_bytes(4)));
+    }
+
+    /**
+     * Generate a cryptographically secure QR token (64-char hex string).
+     */
+    public static function generateQrToken(): string
+    {
+        return bin2hex(random_bytes(32));
+    }
+
+    /**
+     * Generate a human-readable member ID in the format NTF-YYYY-NNNNN.
+     * The suffix is derived from the given DB auto-increment ID.
+     */
+    public static function generateMemberId(int $dbId): string
+    {
+        return 'NTF-' . date('Y') . '-' . str_pad((string)$dbId, 5, '0', STR_PAD_LEFT);
     }
 }
