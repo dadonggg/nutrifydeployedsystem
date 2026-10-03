@@ -10,36 +10,36 @@ $pendingLegal = array_filter($legalDocs, fn($d) => $d['status'] === 'pending');
     <p class="text-muted mb-0">Administrative Officer — verify gym owner applications.</p>
 </div>
 
-<div class="row g-4 mb-4">
-    <div class="col-md-4">
-        <div class="stat-card p-3">
-            <div class="d-flex align-items-center gap-3">
-                <div class="stat-icon bg-warning bg-opacity-25 text-warning"><i class="bi bi-file-earmark-check"></i></div>
-                <div>
-                    <div class="text-muted small">Pending Legal Docs</div>
-                    <div class="fw-bold"><?= count($pendingLegal) ?></div>
+<div class="row g-2 g-sm-3 mb-3 mb-md-4">
+    <div class="col-12 col-sm-4">
+        <div class="stat-card p-2.5 p-sm-3 h-100">
+            <div class="d-flex align-items-center gap-2 gap-sm-3">
+                <div class="stat-icon bg-warning bg-opacity-15 text-warning"><i class="bi bi-file-earmark-check"></i></div>
+                <div class="min-w-0 flex-grow-1">
+                    <div class="text-muted small text-truncate">Pending Legal Docs</div>
+                    <div class="fw-bold stat-value text-dark"><?= count($pendingLegal) ?></div>
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="stat-card p-3">
-            <div class="d-flex align-items-center gap-3">
-                <div class="stat-icon bg-success bg-opacity-25 text-success"><i class="bi bi-file-earmark-check"></i></div>
-                <div>
-                    <div class="text-muted small">Total Applications</div>
-                    <div class="fw-bold"><?= count($legalDocs) ?></div>
+    <div class="col-12 col-sm-4">
+        <div class="stat-card p-2.5 p-sm-3 h-100">
+            <div class="d-flex align-items-center gap-2 gap-sm-3">
+                <div class="stat-icon bg-success bg-opacity-15 text-success"><i class="bi bi-file-earmark-check"></i></div>
+                <div class="min-w-0 flex-grow-1">
+                    <div class="text-muted small text-truncate">Total Applications</div>
+                    <div class="fw-bold stat-value text-dark"><?= count($legalDocs) ?></div>
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="stat-card p-3">
-            <div class="d-flex align-items-center gap-3">
-                <div class="stat-icon bg-info bg-opacity-25 text-info"><i class="bi bi-shield-lock"></i></div>
-                <div>
-                    <div class="text-muted small">Security Monitoring</div>
-                    <div class="fw-bold">Active</div>
+    <div class="col-12 col-sm-4">
+        <div class="stat-card p-2.5 p-sm-3 h-100">
+            <div class="d-flex align-items-center gap-2 gap-sm-3">
+                <div class="stat-icon bg-info bg-opacity-15 text-info"><i class="bi bi-shield-lock"></i></div>
+                <div class="min-w-0 flex-grow-1">
+                    <div class="text-muted small text-truncate">Security Monitoring</div>
+                    <div class="fw-bold stat-value text-success">Active</div>
                 </div>
             </div>
         </div>

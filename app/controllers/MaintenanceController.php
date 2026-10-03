@@ -10,6 +10,8 @@ use App\Models\InspectionChecklist;
 use App\Models\MaintenanceStaff;
 use App\Models\Notification;
 use App\Models\LegalDocument;
+use App\Models\PurchaseRequest;
+use App\Models\PurchaseRequestItem;
 
 final class MaintenanceController extends Controller
 {
@@ -141,17 +143,29 @@ final class MaintenanceController extends Controller
 
         $error   = '';
         $success = '';
-        $existingInspection = null;
-        $existingChecklist  = [];
+        $existingInspection      = null;
+        $existingChecklist       = [];
+        $existingPurchaseRequest = null;
+        $existingPrItems         = [];
 
         $inspectionModel = new EquipmentInspection();
         $checklistModel  = new InspectionChecklist();
+        $prModel         = new PurchaseRequest();
+        $prItemModel     = new PurchaseRequestItem();
 
         // Load existing draft if editing
         if ($inspectionId > 0 && $inspectionModel->tableExists()) {
             $existingInspection = $inspectionModel->findById($inspectionId);
-            if ($existingInspection && $checklistModel->tableExists()) {
-                $existingChecklist = $checklistModel->findByInspection($inspectionId);
+            if ($existingInspection) {
+                if ($checklistModel->tableExists()) {
+                    $existingChecklist = $checklistModel->findByInspection($inspectionId);
+                }
+                if ($prModel->tableExists()) {
+                    $existingPurchaseRequest = $prModel->findByInspectionId($inspectionId);
+                    if ($existingPurchaseRequest && $prItemModel->tableExists()) {
+                        $existingPrItems = $prItemModel->findByRequestId((int)$existingPurchaseRequest['id']);
+                    }
+                }
             }
         }
 
@@ -178,11 +192,39 @@ final class MaintenanceController extends Controller
                 ];
             }
 
+            // Build Purchase Request items from POST (if condition is needs_repair or condemned)
+            $prItems = [];
+            $prTotal = 0.0;
+            if (in_array($condition, ['needs_repair', 'condemned'], true)) {
+                $prNames       = $_POST['pr_item_name'] ?? [];
+                $prQuantities  = $_POST['pr_quantity'] ?? [];
+                $prUnitPrices  = $_POST['pr_unit_price'] ?? [];
+                $prItemNotes   = $_POST['pr_notes'] ?? [];
+                $prPurchased   = $_POST['pr_is_purchased'] ?? [];
+
+                foreach ($prNames as $k => $pname) {
+                    $pname = trim((string)$pname);
+                    if ($pname === '') continue;
+                    $qty   = max(1, (int)($prQuantities[$k] ?? 1));
+                    $price = max(0.0, (float)($prUnitPrices[$k] ?? 0.0));
+                    $sub   = $qty * $price;
+                    $prTotal += $sub;
+
+                    $prItems[] = [
+                        'item_name'    => $pname,
+                        'quantity'     => $qty,
+                        'unit_price'   => $price,
+                        'notes'        => trim((string)($prItemNotes[$k] ?? '')),
+                        'is_purchased' => isset($prPurchased[$k]) ? 1 : 0,
+                    ];
+                }
+            }
+
             if (!in_array($condition, ['good','needs_repair','condemned'], true)) {
                 $error = 'Please select a valid overall condition.';
             } else {
                 if (!$inspectionModel->tableExists()) {
-                    $error = 'Database tables not set up. Please run maintenance_setup.sql first.';
+                    $error = 'Database tables not set up. Please run the migration script first.';
                 } else {
                     if ($existingInspection && $existingInspection['status'] === 'draft') {
                         // Update existing draft
@@ -211,6 +253,25 @@ final class MaintenanceController extends Controller
                         $checklistModel->saveItems($iid, $items);
                     }
 
+                    // Save Purchase Request (if any items provided)
+                    if (!empty($prItems)) {
+                        $prModel->ensureTables();
+                        if ($existingPurchaseRequest) {
+                            $prId = (int)$existingPurchaseRequest['id'];
+                            $prModel->update($prId, $prTotal, 'pending');
+                        } else {
+                            $prId = $prModel->create(
+                                $equipmentId,
+                                $userId,
+                                $gymOwnerId,
+                                $prTotal,
+                                $iid,
+                                'pending'
+                            );
+                        }
+                        $prItemModel->saveItems($prId, $prItems);
+                    }
+
                     if ($action === 'submit') {
                         $inspectionModel->submit($iid);
 
@@ -223,8 +284,18 @@ final class MaintenanceController extends Controller
                                 'info',
                                 'gymowner/maintenancereports'
                             );
+
+                            if (!empty($prItems)) {
+                                $this->notify(
+                                    $gymOwnerId,
+                                    'Purchase Request Submitted',
+                                    $user['fullname'] . ' requested parts/equipment for ' . $equipment['name'] . ' (Estimated Total: ₱' . number_format($prTotal, 2) . ')',
+                                    'warning',
+                                    'gymowner/purchaserequests'
+                                );
+                            }
                         }
-                        $success = 'Inspection report submitted to gym owner!';
+                        $success = 'Inspection report and purchase request submitted to gym owner!';
                         $_SESSION['flash_success'] = $success;
                         $this->redirect('maintenance/reports');
                     } else {
@@ -244,12 +315,14 @@ final class MaintenanceController extends Controller
         }
 
         $this->view('maintenance/inspect-form', [
-            'user'               => $user,
-            'equipment'          => $equipment,
-            'existingInspection' => $existingInspection,
-            'existingChecklist'  => $existingChecklist,
-            'error'              => $error,
-            'success'            => $success,
+            'user'                    => $user,
+            'equipment'               => $equipment,
+            'existingInspection'      => $existingInspection,
+            'existingChecklist'       => $existingChecklist,
+            'existingPurchaseRequest' => $existingPurchaseRequest,
+            'existingPrItems'         => $existingPrItems,
+            'error'                   => $error,
+            'success'                 => $success,
         ]);
     }
 
@@ -302,6 +375,16 @@ final class MaintenanceController extends Controller
             $checklist = $checklistModel->findByInspection($id);
         }
 
+        $purchaseRequest = null;
+        $purchaseRequestItems = [];
+        $prModel = new PurchaseRequest();
+        if ($prModel->tableExists()) {
+            $purchaseRequest = $prModel->findByInspectionId($id);
+            if ($purchaseRequest) {
+                $purchaseRequestItems = (new PurchaseRequestItem())->findByRequestId((int)$purchaseRequest['id']);
+            }
+        }
+
         // Handle submit action from detail page
         $error = '';
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'submit') {
@@ -317,6 +400,15 @@ final class MaintenanceController extends Controller
                         'info',
                         'gymowner/maintenancereports'
                     );
+                    if ($purchaseRequest) {
+                        $this->notify(
+                            $gymOwnerId,
+                            'Purchase Request Submitted',
+                            $user['fullname'] . ' submitted a purchase request for ' . $inspection['equipment_name'] . ' (₱' . number_format((float)$purchaseRequest['total_amount'], 2) . ')',
+                            'warning',
+                            'gymowner/purchaserequests'
+                        );
+                    }
                 }
                 $_SESSION['flash_success'] = 'Report submitted to gym owner!';
                 $this->redirect('maintenance/reportdetail&id=' . $id);
@@ -327,11 +419,47 @@ final class MaintenanceController extends Controller
         unset($_SESSION['flash_success']);
 
         $this->view('maintenance/report-detail', [
-            'user'       => $user,
-            'inspection' => $inspection,
-            'checklist'  => $checklist,
-            'error'      => $error,
-            'success'    => $success,
+            'user'                 => $user,
+            'inspection'           => $inspection,
+            'checklist'            => $checklist,
+            'purchaseRequest'      => $purchaseRequest,
+            'purchaseRequestItems' => $purchaseRequestItems,
+            'error'                => $error,
+            'success'              => $success,
+        ]);
+    }
+
+    /* ─────────────────────────────────────────────────────────────
+       PAGE 6 — PURCHASE REQUESTS (Maintenance Staff View)
+       Route: index.php?r=maintenance/purchaserequests
+    ───────────────────────────────────────────────────────────── */
+    public function purchaserequestsAction(): void
+    {
+        $user = $this->requireMaintenance();
+        $userId = (int)$user['id'];
+
+        $prModel = new PurchaseRequest();
+        $requests = $prModel->tableExists() ? $prModel->findByMaintenanceUser($userId) : [];
+
+        // Load items for each request for detailed view
+        $itemsByRequest = [];
+        $prItemModel = new PurchaseRequestItem();
+        if ($prItemModel->tableExists()) {
+            foreach ($requests as $req) {
+                $itemsByRequest[$req['id']] = $prItemModel->findByRequestId((int)$req['id']);
+            }
+        }
+
+        $success = $_SESSION['flash_success'] ?? '';
+        $error   = $_SESSION['flash_error'] ?? '';
+        unset($_SESSION['flash_success'], $_SESSION['flash_error']);
+
+        $this->view('maintenance/purchase-requests', [
+            'user'           => $user,
+            'requests'       => $requests,
+            'itemsByRequest' => $itemsByRequest,
+            'success'        => $success,
+            'error'          => $error,
         ]);
     }
 

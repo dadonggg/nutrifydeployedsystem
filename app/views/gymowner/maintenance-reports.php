@@ -203,6 +203,17 @@ function viewReport(r) {
             <small class="text-muted fw-bold" style="font-size:.7rem;text-transform:uppercase;letter-spacing:1px">Remarks</small>
             <div class="p-3 rounded border mt-1" style="white-space:pre-wrap;min-height:60px">${r.remarks||'No remarks.'}</div>
         </div>
+        ${(r.overall_condition === 'needs_repair' || r.overall_condition === 'condemned') ? `
+        <div class="mb-3 p-2 bg-light border rounded d-flex justify-content-between align-items-center">
+            <div>
+                <strong class="text-warning"><i class="bi bi-cart-plus me-1"></i>Purchase Request:</strong>
+                <span class="small text-muted ms-1">This equipment may have replacement parts requested.</span>
+            </div>
+            <a href="index.php?r=gymowner/purchaserequests" class="btn btn-sm btn-outline-warning">
+                View Purchase Requests <i class="bi bi-arrow-right ms-1"></i>
+            </a>
+        </div>
+        ` : ''}
         ${r.submitted_at ? `<div class="text-muted small"><i class="bi bi-clock me-1"></i>Submitted: ${r.submitted_at}</div>` : ''}
         ${r.verified_at ? `<div class="text-muted small"><i class="bi bi-check-circle me-1"></i>Verified: ${r.verified_at}</div>` : ''}
     `;

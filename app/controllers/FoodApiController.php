@@ -11,7 +11,6 @@ use App\Core\Controller;
  */
 final class FoodApiController extends Controller
 {
-    private const API_KEY = 'VGbJn4p8tPa6b2HQ48SUYKLqj1aZjdHwOYimGqz';
     private const API_BASE_URL = 'https://api.nal.usda.gov/fdc/v1';
 
     /**
@@ -202,11 +201,11 @@ final class FoodApiController extends Controller
     private function requestUsda(string $endpoint, array $params): ?string
     {
         $config = \App\Core\Container::get('config');
-        $primaryKey = $config['usda']['api_key'] ?? self::API_KEY;
+        $primaryKey = (string)($config['usda']['api_key'] ?? 'DEMO_KEY');
         $fallbackKey = 'DEMO_KEY';
 
         // 1. Try with primary key
-        $params['api_key'] = $primaryKey;
+        $params['api_key'] = !empty($primaryKey) ? $primaryKey : $fallbackKey;
         $url = self::API_BASE_URL . '/' . ltrim($endpoint, '/') . '?' . http_build_query($params);
         
         $context = stream_context_create([

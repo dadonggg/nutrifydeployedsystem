@@ -20,7 +20,7 @@ final class AccountController extends Controller
         return $user;
     }
 
-    /** Profile & Account Settings view */
+    /** Profile & Account Settings view dasdasdsadasdasDSADSA*/
     public function settingsAction(): void
     {
         $user = $this->requireAuth();
@@ -93,6 +93,23 @@ final class AccountController extends Controller
 
         if (!in_array($ext, $allowedExts, true)) {
             $_SESSION['account_error'] = 'Only PDF, JPG, PNG, DOC, DOCX files allowed.';
+            $this->redirect('account/settings');
+        }
+
+        // Validate real MIME type (magic bytes)
+        $allowedMimes = [
+            'application/pdf',
+            'image/jpeg',
+            'image/png',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        ];
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $mime = $finfo ? finfo_file($finfo, $file['tmp_name']) : false;
+        if ($finfo) { finfo_close($finfo); }
+
+        if ($mime && !in_array($mime, $allowedMimes, true)) {
+            $_SESSION['account_error'] = 'Invalid file type detected. Please upload a genuine document or image.';
             $this->redirect('account/settings');
         }
 

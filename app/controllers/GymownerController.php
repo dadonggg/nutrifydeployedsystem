@@ -15,6 +15,8 @@ use App\Models\MembershipPlan;
 use App\Models\GymService;
 use App\Models\PayMongoConfig;
 use App\Models\EquipmentInspection;
+use App\Models\PurchaseRequest;
+use App\Models\PurchaseRequestItem;
 
 final class GymownerController extends Controller
 {
@@ -138,11 +140,22 @@ final class GymownerController extends Controller
 
                     $fields = ['cert_registration','mayors_permit','business_name_cert','fire_safety_cert'];
                     $paths = [];
+                    $allowedMimes = ['application/pdf', 'image/jpeg', 'image/png'];
 
                     foreach ($fields as $f) {
                         if (empty($_FILES[$f]['tmp_name'])) { $error = 'All four documents are required.'; break; }
                         $ext = strtolower(pathinfo($_FILES[$f]['name'], PATHINFO_EXTENSION));
                         if (!in_array($ext, ['pdf','jpg','jpeg','png'], true)) { $error = 'Only PDF, JPG, PNG allowed.'; break; }
+                        
+                        // Check real MIME
+                        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                        $mime = $finfo ? finfo_file($finfo, $_FILES[$f]['tmp_name']) : false;
+                        if ($finfo) { finfo_close($finfo); }
+                        if ($mime && !in_array($mime, $allowedMimes, true)) {
+                            $error = 'Invalid file format detected for ' . htmlspecialchars($f) . '.';
+                            break;
+                        }
+
                         $filename = $f . '_' . $user['id'] . '_' . time() . '.' . $ext;
                         if (!move_uploaded_file($_FILES[$f]['tmp_name'], $uploadDir . $filename)) { $error = 'Failed to upload ' . $f; break; }
                         $paths[$f] = 'uploads/legal_documents/' . $filename;
@@ -872,6 +885,139 @@ final class GymownerController extends Controller
             'tableReady' => $tableReady,
             'success'    => $success,
             'error'      => $error,
+        ]);
+    }
+
+    /** Purchase Requests — view, approve, reject and manage equipment parts purchase requests */
+    public function purchaserequestsAction(): void
+    {
+        $user = $this->requireGymOwner();
+        $gymOwnerId = (int)$user['id'];
+
+        $filter = $_GET['filter'] ?? 'all';
+
+        $prModel     = new PurchaseRequest();
+        $prItemModel = new PurchaseRequestItem();
+        $tableReady  = $prModel->tableExists();
+
+        $success = '';
+        $error   = '';
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tableReady) {
+            $action     = $_POST['action'] ?? '';
+            $requestId  = (int)($_POST['request_id'] ?? 0);
+            $adminNotes = trim((string)($_POST['admin_notes'] ?? ''));
+
+            if ($requestId > 0) {
+                $req = $prModel->findById($requestId);
+                if ($req && (int)$req['gym_id'] === $gymOwnerId) {
+                    $existingItems = $prItemModel->findByRequestId($requestId);
+
+                    if ($action === 'approve') {
+                        $approvedItemIds = array_map('intval', (array)($_POST['approved_items'] ?? []));
+                        $itemReasons     = (array)($_POST['item_rejection_reasons'] ?? []);
+
+                        $approvedCount  = 0;
+                        $approvedAmount = 0.0;
+                        $totalItemCount = count($existingItems);
+
+                        foreach ($existingItems as $itm) {
+                            $itmId = (int)$itm['id'];
+                            $sub   = (float)($itm['quantity'] ?? 1) * (float)($itm['unit_price'] ?? 0);
+
+                            if (in_array($itmId, $approvedItemIds, true)) {
+                                $prItemModel->updateItemDecision($itmId, 'approved', null, 1);
+                                $approvedCount++;
+                                $approvedAmount += $sub;
+                            } else {
+                                $reason = trim((string)($itemReasons[$itmId] ?? ''));
+                                if ($reason === '') {
+                                    $reason = $adminNotes ?: 'Not approved for this purchase cycle';
+                                }
+                                $prItemModel->updateItemDecision($itmId, 'rejected', $reason, 0);
+                            }
+                        }
+
+                        if ($approvedCount > 0) {
+                            $prModel->approve($requestId, $gymOwnerId, $adminNotes ?: null);
+                            $msg = 'Your purchase request for ' . $req['equipment_name'] . ' was approved (' . $approvedCount . '/' . $totalItemCount . ' items approved, ₱' . number_format($approvedAmount, 2) . ') by ' . $user['fullname'] . ($adminNotes ? ': "' . $adminNotes . '"' : '');
+                            $this->notify((int)$req['requested_by'], 'Purchase Request Decision', $msg, 'success', 'maintenance/purchaserequests');
+                            $success = 'Purchase Request #' . $requestId . ' processed: ' . $approvedCount . ' item(s) approved (₱' . number_format($approvedAmount, 2) . ').';
+                        } else {
+                            $prModel->reject($requestId, $gymOwnerId, $adminNotes ?: null);
+                            $msg = 'Your purchase request for ' . $req['equipment_name'] . ' was not approved by ' . $user['fullname'] . ($adminNotes ? ': "' . $adminNotes . '"' : '');
+                            $this->notify((int)$req['requested_by'], 'Purchase Request Rejected', $msg, 'danger', 'maintenance/purchaserequests');
+                            $success = 'All items in Purchase Request #' . $requestId . ' were rejected.';
+                        }
+                    } elseif ($action === 'reject') {
+                        $itemReasons = (array)($_POST['item_rejection_reasons'] ?? []);
+                        foreach ($existingItems as $itm) {
+                            $itmId = (int)$itm['id'];
+                            $reason = trim((string)($itemReasons[$itmId] ?? ''));
+                            if ($reason === '') {
+                                $reason = $adminNotes ?: 'Request rejected by owner';
+                            }
+                            $prItemModel->updateItemDecision($itmId, 'rejected', $reason, 0);
+                        }
+                        $prModel->reject($requestId, $gymOwnerId, $adminNotes ?: null);
+                        $this->notify(
+                            (int)$req['requested_by'],
+                            'Purchase Request Rejected',
+                            'Your purchase request for ' . $req['equipment_name'] . ' was rejected by ' . $user['fullname'] . ($adminNotes ? ': "' . $adminNotes . '"' : ''),
+                            'danger',
+                            'maintenance/purchaserequests'
+                        );
+                        $success = 'Purchase Request #' . $requestId . ' has been rejected.';
+                    } elseif ($action === 'mark_purchased') {
+                        $prModel->markPurchased($requestId, $adminNotes ?: null);
+                        $this->notify(
+                            (int)$req['requested_by'],
+                            'Purchase Request Marked as Purchased',
+                            'Approved items for ' . $req['equipment_name'] . ' have been marked as purchased.',
+                            'info',
+                            'maintenance/purchaserequests'
+                        );
+                        $success = 'Purchase Request #' . $requestId . ' has been marked as purchased.';
+                    }
+                } else {
+                    $error = 'Purchase request not found.';
+                }
+            }
+        }
+
+        $allRequests = $tableReady ? $prModel->findByGymOwner($gymOwnerId, 'all') : [];
+        $requests    = $tableReady ? $prModel->findByGymOwner($gymOwnerId, $filter) : [];
+
+        // Preload items for modal view
+        $itemsByRequest = [];
+        if ($tableReady) {
+            foreach ($requests as $r) {
+                $itemsByRequest[$r['id']] = $prItemModel->findByRequestId((int)$r['id']);
+            }
+        }
+
+        // Compute stat counters
+        $totalCount     = count($allRequests);
+        $pendingCount   = count(array_filter($allRequests, fn($r) => $r['status'] === 'pending'));
+        $approvedCount  = count(array_filter($allRequests, fn($r) => $r['status'] === 'approved'));
+        $rejectedCount  = count(array_filter($allRequests, fn($r) => $r['status'] === 'rejected'));
+        $purchasedCount = count(array_filter($allRequests, fn($r) => $r['status'] === 'purchased'));
+        $totalValue     = array_reduce($allRequests, fn($sum, $r) => $sum + (float)$r['total_amount'], 0.0);
+
+        $this->view('gymowner/purchase-requests', [
+            'user'           => $user,
+            'requests'       => $requests,
+            'itemsByRequest' => $itemsByRequest,
+            'filter'         => $filter,
+            'tableReady'     => $tableReady,
+            'totalCount'     => $totalCount,
+            'pendingCount'   => $pendingCount,
+            'approvedCount'  => $approvedCount,
+            'rejectedCount'  => $rejectedCount,
+            'purchasedCount' => $purchasedCount,
+            'totalValue'     => $totalValue,
+            'success'        => $success,
+            'error'          => $error,
         ]);
     }
 

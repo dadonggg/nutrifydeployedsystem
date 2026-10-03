@@ -375,6 +375,264 @@ $daysOfWeek = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Su
     font-size: 2.8rem; font-weight: 800; color: #a5d6a7; margin-bottom: 1rem;
     box-shadow: 0 0 30px rgba(76,175,80,0.4);
 }
+
+/* ── Manual Program Builder Modal Visual Overhaul ────────────────────── */
+.mb-builder-modal .modal-header {
+    background: linear-gradient(135deg, #0f2117 0%, #1B6B2A 60%, #2E8B3E 100%) !important;
+    color: #fff !important;
+    padding: 1.25rem 1.75rem;
+    border-bottom: none;
+}
+
+.mb-builder-modal .modal-body {
+    padding: 1.75rem 2rem 1.75rem 1.75rem;
+    background: #f8fafc;
+}
+
+.mb-step-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 1.35rem 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+}
+
+.mb-step-header {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    margin-bottom: 1rem;
+}
+
+.mb-step-badge {
+    background: #e8f5e9;
+    color: #1B6B2A;
+    font-size: .75rem;
+    font-weight: 800;
+    letter-spacing: .05em;
+    padding: .35rem .75rem;
+    border-radius: 50px;
+    border: 1px solid #c5e0c8;
+    text-transform: uppercase;
+}
+
+.mb-step-title {
+    font-weight: 700;
+    font-size: 1rem;
+    color: #1e293b;
+    margin: 0;
+}
+
+.mb-input-icon-group {
+    position: relative;
+}
+.mb-input-icon-group .mb-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #1B6B2A;
+    font-size: 1.1rem;
+    pointer-events: none;
+}
+.mb-input-icon-group .form-select {
+    padding-left: 42px !important;
+    height: 46px;
+    border-radius: 10px !important;
+    border: 1.5px solid #cbd5e1 !important;
+    font-weight: 600;
+    color: #1e293b;
+    background-color: #ffffff;
+    transition: all .2s;
+}
+.mb-input-icon-group .form-select:focus {
+    border-color: #1B6B2A !important;
+    box-shadow: 0 0 0 3px rgba(27,107,42,0.15) !important;
+}
+
+.mb-routine-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: .85rem;
+    margin-bottom: 1rem;
+}
+
+.mb-routine-card {
+    background: #ffffff;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    padding: .95rem 1rem;
+    cursor: pointer;
+    transition: all .2s ease;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.mb-routine-card:hover {
+    border-color: #4CAF50;
+    background: #f0fdf4;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(27,107,42,0.1);
+}
+
+.mb-routine-card.active {
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfee4 100%);
+    border-color: #1B6B2A;
+    box-shadow: 0 4px 14px rgba(27,107,42,0.2);
+}
+
+.mb-routine-card .routine-title {
+    font-weight: 700;
+    font-size: .88rem;
+    color: #1B6B2A;
+    margin-bottom: .25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.mb-routine-card .routine-desc {
+    font-size: .78rem;
+    color: #64748b;
+    line-height: 1.4;
+}
+
+.mb-day-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .6rem;
+}
+.mb-day-pill { position: relative; }
+.mb-day-pill input[type="checkbox"] { display: none; }
+.mb-day-pill label {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 54px;
+    padding: .5rem 1.1rem;
+    border-radius: 50px;
+    border: 2px solid #e2e8f0;
+    background: #ffffff;
+    cursor: pointer;
+    font-size: .88rem;
+    font-weight: 700;
+    color: #64748b;
+    transition: all .2s ease;
+    user-select: none;
+}
+.mb-day-pill input:checked + label {
+    background: #1B6B2A;
+    border-color: #1B6B2A;
+    color: #ffffff;
+    box-shadow: 0 3px 10px rgba(27,107,42,0.3);
+}
+.mb-day-pill label:hover {
+    border-color: #4CAF50;
+    color: #1B6B2A;
+    background: #f0fdf4;
+}
+
+.mb-day-block {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+}
+
+.mb-day-title {
+    font-weight: 700;
+    font-size: 1rem;
+    color: #1e293b;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+
+.mb-exercise-header-row {
+    display: grid;
+    grid-template-columns: 2fr 70px 90px 95px 2fr 36px;
+    gap: .5rem;
+    font-size: .75rem;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    margin-bottom: .6rem;
+    padding: 0 .25rem;
+}
+
+.mb-exercise-row {
+    display: grid;
+    grid-template-columns: 2fr 70px 90px 95px 2fr 36px;
+    gap: .5rem;
+    align-items: center;
+    margin-bottom: .6rem;
+}
+
+.mb-exercise-row input {
+    border-radius: 8px;
+    border: 1.5px solid #cbd5e1;
+    font-size: .85rem;
+    padding: .4rem .6rem;
+}
+.mb-exercise-row input:focus {
+    border-color: #1B6B2A;
+    box-shadow: 0 0 0 3px rgba(27,107,42,0.12);
+}
+
+.mb-add-exercise-btn {
+    background: #f0fdf4;
+    border: 1.5px dashed #4CAF50;
+    color: #1B6B2A;
+    border-radius: 8px;
+    padding: .45rem 1rem;
+    font-size: .85rem;
+    font-weight: 700;
+    transition: all .2s;
+}
+.mb-add-exercise-btn:hover {
+    background: #dcfce7;
+    border-color: #1B6B2A;
+}
+
+.mb-remove-btn {
+    background: transparent;
+    border: none;
+    color: #ef4444;
+    font-size: 1.15rem;
+    cursor: pointer;
+    transition: color .15s;
+    padding: 0;
+}
+.mb-remove-btn:hover {
+    color: #dc2626;
+}
+
+.mb-empty-state-card {
+    text-align: center;
+    padding: 3rem 1.5rem;
+    background: #ffffff;
+    border: 2px dashed #cbd5e1;
+    border-radius: 14px;
+}
+.mb-empty-icon-wrap {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: #f0fdf4;
+    color: #1B6B2A;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    margin-bottom: 1rem;
+}
 </style>
 
 <!-- Loading Overlay -->
@@ -393,7 +651,7 @@ $daysOfWeek = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Su
 <div class="fp-hero">
     <div class="fp-hero-content">
         <h1><i class="bi bi-lightning-charge-fill me-2" style="color:#a5d6a7;"></i>My Fitness Program</h1>
-        <p>Powered by Gemini AI · Personalised for <strong><?= htmlspecialchars($gymName) ?></strong></p>
+        <p>Personalised for <strong><?= htmlspecialchars($gymName) ?></strong></p>
     </div>
 </div>
 
@@ -424,7 +682,7 @@ $daysOfWeek = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Su
 <div class="fp-form-card">
     <div class="fp-form-header">
         <i class="bi bi-person-lines-fill fs-5"></i>
-        <?= $program ? 'Regenerate Your Fitness Program' : 'Create Your Fitness Program' ?>
+        <?= $program ? 'Edit Your Fitness Program' : 'Create Your Fitness Program' ?>
     </div>
     <div class="fp-form-body">
         <?php if ($program): ?>
@@ -547,10 +805,7 @@ $daysOfWeek = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Su
 
                 <!-- Submit row -->
                 <div class="col-12 d-flex flex-wrap gap-3 align-items-center">
-                    <button type="submit" class="btn btn-generate" id="fp-submit-btn">
-                        <i class="bi bi-magic me-2"></i><?= $program ? 'Regenerate with AI' : 'Generate with AI' ?>
-                    </button>
-                    <button type="button" class="btn btn-manual" id="fp-manual-btn"
+                    <button type="button" class="btn btn-success fw-semibold px-4 py-2" id="fp-manual-btn"
                             data-bs-toggle="modal" data-bs-target="#manualBuilderModal">
                         <i class="bi bi-pencil-square me-2"></i>Build My Own Program
                     </button>
@@ -591,9 +846,6 @@ $daysOfWeek = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Su
             </p>
         </div>
         <div class="d-flex gap-2">
-            <a href="index.php?r=membership/fitnessprogram&regenerate=1" class="btn btn-regenerate">
-                <i class="bi bi-arrow-repeat me-1"></i>Regenerate
-            </a>
             <button type="button" class="btn btn-manual"
                     data-bs-toggle="modal" data-bs-target="#manualBuilderModal">
                 <i class="bi bi-pencil-square me-1"></i>Edit Manually
@@ -776,97 +1028,273 @@ $daysOfWeek = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Su
 <!-- ═══════════════════════════════════════════════════════════════════
      MANUAL PROGRAM BUILDER MODAL
 ══════════════════════════════════════════════════════════════════════ -->
-<div class="modal fade" id="manualBuilderModal" tabindex="-1" aria-labelledby="manualBuilderLabel" aria-hidden="true">
+<div class="modal fade mb-builder-modal" id="manualBuilderModal" tabindex="-1" aria-labelledby="manualBuilderLabel" aria-hidden="true">
   <div class="modal-dialog modal-xl modal-dialog-scrollable">
-    <div class="modal-content">
+    <div class="modal-content border-0 shadow-lg overflow-hidden" style="border-radius: 18px;">
 
-      <div class="modal-header" style="background:linear-gradient(90deg,#1B6B2A,#2E8B3E);color:#fff;">
-        <h5 class="modal-title fw-bold" id="manualBuilderLabel">
-            <i class="bi bi-pencil-square me-2"></i>Build My Own Program
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold d-flex align-items-center gap-2" id="manualBuilderLabel">
+            <i class="bi bi-pencil-square fs-4 text-warning"></i>
+            Build My Own Program
         </h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
 
       <div class="modal-body">
 
-        <!-- Step 1: basics -->
-        <div class="row g-3 mb-3 pb-3 border-bottom">
-            <div class="col-md-4">
-                <label class="form-label fw-semibold small" for="mb_goal">Training Goal</label>
-                <select class="form-select form-select-sm" id="mb_goal">
-                    <option value="Maintaining">Maintaining</option>
-                    <option value="Bulking">Bulking</option>
-                    <option value="Cutting">Cutting</option>
-                </select>
+        <!-- Step 1: Program Basics -->
+        <div class="mb-step-card">
+            <div class="mb-step-header">
+                <span class="mb-step-badge">Step 1</span>
+                <h6 class="mb-step-title">Program Basics</h6>
             </div>
-            <div class="col-md-4">
-                <label class="form-label fw-semibold small" for="mb_exp">Experience Level</label>
-                <select class="form-select form-select-sm" id="mb_exp">
-                    <option value="Beginner">Beginner</option>
-                    <option value="Intermediate">Intermediate</option>
-                    <option value="Advanced">Advanced</option>
-                </select>
-            </div>
-            <div class="col-md-4">
-                <label class="form-label fw-semibold small" for="mb_length">Session Length</label>
-                <select class="form-select form-select-sm" id="mb_length">
-                    <option value="30">30 min</option>
-                    <option value="45">45 min</option>
-                    <option value="60" selected>60 min</option>
-                    <option value="90">90 min</option>
-                </select>
-            </div>
-        </div>
-
-        <!-- Step 2: Suggested Preset Workouts -->
-        <div class="preset-card mb-4">
-            <div class="preset-title">
-                <i class="bi bi-lightning-charge-fill text-success"></i> Quick-Load Suggested Workout Routines
-            </div>
-            <div class="preset-buttons">
-                <button type="button" class="btn-preset" onclick="mbLoadPreset('ppl')">
-                    ⚡ Push / Pull / Legs (PPL) Split
-                </button>
-                <button type="button" class="btn-preset" onclick="mbLoadPreset('upper_lower')">
-                    ⚡ Upper / Lower Body Split
-                </button>
-                <button type="button" class="btn-preset" onclick="mbLoadPreset('full_body')">
-                    ⚡ Full Body 3-Day Split
-                </button>
-                <button type="button" class="btn-preset" onclick="mbLoadPreset('bro_split')">
-                    ⚡ Bro Split (Body Part Split)
-                </button>
-                <button type="button" class="btn-preset" onclick="mbLoadPreset('dumbbells_only')">
-                    ⚡ Dumbbells & Bench Only
-                </button>
-            </div>
-            <div class="preset-equip-hint" id="preset-equip-text">
-                <i class="bi bi-info-circle"></i> Click a routine above to auto-fill days, exercises, sets, reps, and required equipment.
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold small text-secondary" for="mb_goal">Training Goal</label>
+                    <div class="mb-input-icon-group">
+                        <i class="bi bi-bullseye mb-icon"></i>
+                        <select class="form-select" id="mb_goal">
+                            <option value="Maintaining">Maintaining</option>
+                            <option value="Bulking">Bulking</option>
+                            <option value="Cutting">Cutting</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold small text-secondary" for="mb_exp">Experience Level</label>
+                    <div class="mb-input-icon-group">
+                        <i class="bi bi-bar-chart-fill mb-icon"></i>
+                        <select class="form-select" id="mb_exp">
+                            <option value="Beginner">Beginner</option>
+                            <option value="Intermediate">Intermediate</option>
+                            <option value="Advanced">Advanced</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold small text-secondary" for="mb_length">Session Length (Minutes)</label>
+                    <div class="mb-input-icon-group">
+                        <i class="bi bi-clock-fill mb-icon"></i>
+                        <input type="number" class="form-select" id="mb_length" min="10" max="300" step="5" value="<?= (int)($program['session_length'] ?? 60) ?>" placeholder="e.g. 60">
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Step 3: pick days -->
-        <p class="fw-semibold mb-2"><i class="bi bi-calendar3 text-success me-1"></i>Select Training Days</p>
-        <div class="mb-day-select-row mb-3" id="mb-day-select">
-            <?php foreach ($daysOfWeek as $day): ?>
-            <div class="mb-day-checkbox">
-                <input type="checkbox" id="mb_day_<?= strtolower($day) ?>" value="<?= $day ?>"
-                       onchange="mbToggleDay('<?= $day ?>', this.checked)">
-                <label for="mb_day_<?= strtolower($day) ?>"><?= substr($day,0,3) ?></label>
+        <!-- Step 2: Quick-Load Suggested Routines -->
+        <div class="mb-step-card">
+            <div class="mb-step-header justify-content-between">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="mb-step-badge">Step 2</span>
+                    <h6 class="mb-step-title">Quick-Load a Routine (Optional)</h6>
+                </div>
+                <small class="text-muted"><i class="bi bi-magic me-1 text-success"></i>Click a routine to auto-fill days &amp; exercises</small>
             </div>
-            <?php endforeach; ?>
+            <div class="mb-routine-cards" id="mb-preset-cards">
+                <div class="mb-routine-card" onclick="mbSelectRoutineCard(this, 'ppl')">
+                    <div class="routine-title">
+                        <span>⚡ Push / Pull / Legs</span>
+                        <i class="bi bi-arrow-right-short fs-5"></i>
+                    </div>
+                    <div class="routine-desc">6 days/week, push-pull-legs split</div>
+                    <div class="d-flex flex-wrap gap-1 mt-2">
+                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle" style="font-size:.65rem;">🔥 Cutting</span>
+                        <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size:.65rem;">💪 Bulking</span>
+                        <span class="badge bg-secondary-subtle text-secondary border" style="font-size:.65rem;">Focus: Chest · Back · Legs · Shoulders · Arms</span>
+                    </div>
+                </div>
+                <div class="mb-routine-card" onclick="mbSelectRoutineCard(this, 'upper_lower')">
+                    <div class="routine-title">
+                        <span>⚡ Upper / Lower</span>
+                        <i class="bi bi-arrow-right-short fs-5"></i>
+                    </div>
+                    <div class="routine-desc">4 days/week, upper &amp; lower body</div>
+                    <div class="d-flex flex-wrap gap-1 mt-2">
+                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size:.65rem;">⚖️ Maintaining</span>
+                        <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size:.65rem;">💪 Bulking</span>
+                        <span class="badge bg-secondary-subtle text-secondary border" style="font-size:.65rem;">Focus: Compound strength + muscle balance</span>
+                    </div>
+                </div>
+                <div class="mb-routine-card" onclick="mbSelectRoutineCard(this, 'full_body')">
+                    <div class="routine-title">
+                        <span>⚡ Full Body 3-Day</span>
+                        <i class="bi bi-arrow-right-short fs-5"></i>
+                    </div>
+                    <div class="routine-desc">3 days/week, full body compound workout</div>
+                    <div class="d-flex flex-wrap gap-1 mt-2">
+                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size:.65rem;">⚖️ Maintaining</span>
+                        <span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size:.65rem;">🌱 Beginner Friendly</span>
+                        <span class="badge bg-secondary-subtle text-secondary border" style="font-size:.65rem;">Focus: Squats · Press · Rows</span>
+                    </div>
+                </div>
+                <div class="mb-routine-card" onclick="mbSelectRoutineCard(this, 'bro_split')">
+                    <div class="routine-title">
+                        <span>⚡ Bro Split</span>
+                        <i class="bi bi-arrow-right-short fs-5"></i>
+                    </div>
+                    <div class="routine-desc">5 days/week, body part split</div>
+                    <div class="d-flex flex-wrap gap-1 mt-2">
+                        <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size:.65rem;">💪 Bulking</span>
+                        <span class="badge bg-secondary-subtle text-secondary border" style="font-size:.65rem;">Focus: One muscle group per day</span>
+                    </div>
+                </div>
+                <div class="mb-routine-card" onclick="mbSelectRoutineCard(this, 'dumbbells_only')">
+                    <div class="routine-title">
+                        <span>⚡ Dumbbells &amp; Bench</span>
+                        <i class="bi bi-arrow-right-short fs-5"></i>
+                    </div>
+                    <div class="routine-desc">3 days/week, dumbbell routine</div>
+                    <div class="d-flex flex-wrap gap-1 mt-2">
+                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size:.65rem;">⚖️ Maintaining</span>
+                        <span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size:.65rem;">🏠 Home / Minimal Equipment</span>
+                        <span class="badge bg-secondary-subtle text-secondary border" style="font-size:.65rem;">Focus: Full body with dumbbells</span>
+                    </div>
+                </div>
+                <div class="mb-routine-card" onclick="mbSelectRoutineCard(this, 'hiit_cardio')">
+                    <div class="routine-title">
+                        <span>⚡ HIIT + Cardio Cut</span>
+                        <i class="bi bi-arrow-right-short fs-5"></i>
+                    </div>
+                    <div class="routine-desc">5 days/week, fat burning + cardio</div>
+                    <div class="d-flex flex-wrap gap-1 mt-2">
+                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle" style="font-size:.65rem;">🔥 Cutting</span>
+                        <span class="badge bg-secondary-subtle text-secondary border" style="font-size:.65rem;">Focus: Fat loss, cardio endurance, metabolic</span>
+                    </div>
+                </div>
+                <div class="mb-routine-card" onclick="mbSelectRoutineCard(this, 'powerlifting')">
+                    <div class="routine-title">
+                        <span>⚡ Powerlifting 4-Day</span>
+                        <i class="bi bi-arrow-right-short fs-5"></i>
+                    </div>
+                    <div class="routine-desc">4 days/week, heavy compound lifts</div>
+                    <div class="d-flex flex-wrap gap-1 mt-2">
+                        <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size:.65rem;">💪 Bulking</span>
+                        <span class="badge bg-purple-subtle text-purple border" style="font-size:.65rem; background:#f3e5ff !important; color:#7b1fa2 !important; border-color:#ce93d8 !important;">🏋️ Advanced</span>
+                        <span class="badge bg-secondary-subtle text-secondary border" style="font-size:.65rem;">Focus: Squat · Bench · Deadlift · OHP</span>
+                    </div>
+                </div>
+                <div class="mb-routine-card" onclick="mbSelectRoutineCard(this, 'calisthenics')">
+                    <div class="routine-title">
+                        <span>⚡ Calisthenics / Bodyweight</span>
+                        <i class="bi bi-arrow-right-short fs-5"></i>
+                    </div>
+                    <div class="routine-desc">4 days/week, no equipment needed</div>
+                    <div class="d-flex flex-wrap gap-1 mt-2">
+                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle" style="font-size:.65rem;">🔥 Cutting</span>
+                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size:.65rem;">⚖️ Maintaining</span>
+                        <span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size:.65rem;">🏠 Zero Equipment</span>
+                        <span class="badge bg-secondary-subtle text-secondary border" style="font-size:.65rem;">Focus: Push-ups · Pulls · Core · Mobility</span>
+                    </div>
+                </div>
+            </div>
+            <div class="p-2 px-3 rounded-3 bg-light border text-muted small" id="preset-equip-text">
+                <i class="bi bi-info-circle me-1 text-success"></i> Select a routine above or customize your own training schedule below.
+            </div>
+
+            <!-- Meal Plan Suggestions by Goal -->
+            <div class="mt-4 p-3 rounded-3 border" style="background: linear-gradient(135deg, #f0fdf4 0%, #f8fafc 100%);">
+                <h6 class="fw-bold text-success mb-3"><i class="bi bi-egg-fried me-2"></i>Meal Plan Suggestions by Goal</h6>
+                <div class="row g-3">
+                    <!-- Bulking -->
+                    <div class="col-md-4">
+                        <div class="rounded-3 p-3 h-100" style="background:#e8f5e9; border: 1px solid #a5d6a7;">
+                            <div class="fw-bold text-success mb-2" style="font-size:.9rem;"><i class="bi bi-arrow-up-circle-fill me-1"></i>💪 Bulking (Muscle Gain)</div>
+                            <p class="text-muted small mb-2">High calorie, high protein diet to fuel muscle growth. Aim for <strong>+300 to +500 kcal surplus</strong> daily.</p>
+                            <ul class="list-unstyled small text-dark mb-0" style="line-height:1.9;">
+                                <li>🍳 <strong>Breakfast:</strong> 6 egg scramble + oats + banana + protein shake</li>
+                                <li>🍗 <strong>Lunch:</strong> 200g chicken breast + 1 cup white rice + broccoli</li>
+                                <li>🥩 <strong>Dinner:</strong> Lean beef steak + sweet potato + mixed vegetables</li>
+                                <li>🥤 <strong>Snack 1:</strong> Mass gainer shake + 2 tbsp peanut butter</li>
+                                <li>🧀 <strong>Snack 2:</strong> Cottage cheese + almonds</li>
+                                <li>🥛 <strong>Pre-bed:</strong> Casein protein shake or Greek yogurt</li>
+                            </ul>
+                            <div class="mt-2 p-2 rounded-2 text-success small" style="background:rgba(76,175,80,.1);">
+                                <i class="bi bi-info-circle me-1"></i> Target: <strong>2,800–3,500+ kcal</strong> · 1.6–2.2g protein/kg bodyweight
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Cutting -->
+                    <div class="col-md-4">
+                        <div class="rounded-3 p-3 h-100" style="background:#fff3e0; border: 1px solid #ffcc80;">
+                            <div class="fw-bold text-warning mb-2" style="font-size:.9rem; color:#e65100 !important;"><i class="bi bi-fire me-1"></i>🔥 Cutting (Fat Loss)</div>
+                            <p class="text-muted small mb-2">Calorie deficit while maintaining protein to preserve muscle. Aim for <strong>-300 to -500 kcal deficit</strong> daily.</p>
+                            <ul class="list-unstyled small text-dark mb-0" style="line-height:1.9;">
+                                <li>🥚 <strong>Breakfast:</strong> 3 eggs + egg whites + spinach omelette + black coffee</li>
+                                <li>🥗 <strong>Lunch:</strong> Grilled chicken salad + light vinaigrette + 1 cup brown rice</li>
+                                <li>🐟 <strong>Dinner:</strong> Baked tilapia / salmon + steamed broccoli + cauliflower rice</li>
+                                <li>🍎 <strong>Snack 1:</strong> Apple + whey protein shake (water-based)</li>
+                                <li>🥒 <strong>Snack 2:</strong> Celery + hummus or boiled egg whites</li>
+                                <li>🫐 <strong>Post-workout:</strong> Lean protein + fast carb (banana)</li>
+                            </ul>
+                            <div class="mt-2 p-2 rounded-2 small" style="background:rgba(255,152,0,.1); color:#e65100;">
+                                <i class="bi bi-info-circle me-1"></i> Target: <strong>1,600–2,200 kcal</strong> · High protein to prevent muscle loss
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Maintaining -->
+                    <div class="col-md-4">
+                        <div class="rounded-3 p-3 h-100" style="background:#e3f2fd; border: 1px solid #90caf9;">
+                            <div class="fw-bold mb-2" style="font-size:.9rem; color:#1565c0;"><i class="bi bi-balance-scale me-1"></i>⚖️ Maintaining (Body Recomp)</div>
+                            <p class="text-muted small mb-2">Eat at maintenance calories — build lean muscle gradually while staying lean. <strong>TDEE-matched</strong> intake.</p>
+                            <ul class="list-unstyled small text-dark mb-0" style="line-height:1.9;">
+                                <li>🥣 <strong>Breakfast:</strong> Oatmeal + berries + 2 boiled eggs + coffee</li>
+                                <li>🌯 <strong>Lunch:</strong> Turkey/chicken wrap + whole wheat tortilla + avocado</li>
+                                <li>🥘 <strong>Dinner:</strong> Stir-fry chicken + brown rice + mixed vegetables</li>
+                                <li>🍌 <strong>Snack 1:</strong> Banana + peanut butter + whey protein</li>
+                                <li>🥗 <strong>Snack 2:</strong> Greek yogurt + granola + honey drizzle</li>
+                                <li>💧 <strong>Hydration:</strong> 3–4L water daily · Electrolytes post-workout</li>
+                            </ul>
+                            <div class="mt-2 p-2 rounded-2 small" style="background:rgba(33,150,243,.1); color:#1565c0;">
+                                <i class="bi bi-info-circle me-1"></i> Target: <strong>2,000–2,600 kcal</strong> · Balance of protein, carbs &amp; healthy fats
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-2 text-muted small"><i class="bi bi-exclamation-circle me-1 text-warning"></i> These are general guidelines. Consult your gym's nutrition coach or a registered dietitian for a personalised plan.</div>
+            </div>
         </div>
 
-        <!-- Step 4: exercise builder (dynamically added) -->
-        <div id="mb-days-container">
-            <p class="text-muted small fst-italic">Check the days above or pick a suggested routine to start adding exercises.</p>
+        <!-- Step 3: Select Training Days -->
+        <div class="mb-step-card">
+            <div class="mb-step-header">
+                <span class="mb-step-badge">Step 3</span>
+                <h6 class="mb-step-title">Select Training Days</h6>
+            </div>
+            <div class="mb-day-pills" id="mb-day-select">
+                <?php foreach ($daysOfWeek as $day): ?>
+                <div class="mb-day-pill">
+                    <input type="checkbox" id="mb_day_<?= strtolower($day) ?>" value="<?= $day ?>"
+                           onchange="mbToggleDay('<?= $day ?>', this.checked)">
+                    <label for="mb_day_<?= strtolower($day) ?>"><?= substr($day,0,3) ?></label>
+                </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+
+        <!-- Step 4: Your Exercises -->
+        <div class="mb-step-card mb-0">
+            <div class="mb-step-header">
+                <span class="mb-step-badge">Step 4</span>
+                <h6 class="mb-step-title">Your Exercises</h6>
+            </div>
+            <div id="mb-days-container">
+                <div class="mb-empty-state-card mb-empty-hint">
+                    <div class="mb-empty-icon-wrap">
+                        <i class="bi bi-calendar-plus"></i>
+                    </div>
+                    <h6 class="fw-bold text-dark mb-1">No training days selected yet</h6>
+                    <p class="text-muted small mb-0" style="max-width: 400px; margin: 0 auto;">
+                        Check the days in Step 3 above or click one of the suggested routines in Step 2 to populate your exercise plan.
+                    </p>
+                </div>
+            </div>
         </div>
 
       </div>
 
-      <div class="modal-footer gap-2">
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-generate" onclick="mbSaveProgram()">
+      <div class="modal-footer bg-light p-3 px-4 border-top">
+        <button type="button" class="btn btn-outline-secondary px-4 fw-semibold rounded-3" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-generate px-4 shadow-sm" onclick="mbSaveProgram()">
             <i class="bi bi-floppy-fill me-1"></i>Save My Program
         </button>
       </div>
@@ -1504,6 +1932,100 @@ var PRESET_ROUTINES = {
                 { name: "Hammer Curls", sets: 3, reps: "12", rest: 60, equip: "Dumbbells" }
             ]}
         }
+    },
+    hiit_cardio: {
+        name: "HIIT + Cardio Cut",
+        equip: "Suggested Equipment: Resistance Bands, Dumbbells (optional), Jump Rope, Mat, Treadmill / Open Space",
+        schedule: {
+            "Monday": { focus: "HIIT Strength Circuit (Upper)", exercises: [
+                { name: "Push-ups", sets: 4, reps: "15-20", rest: 45, equip: "Bodyweight" },
+                { name: "Dumbbell Rows (superset)", sets: 4, reps: "15", rest: 45, equip: "Dumbbells" },
+                { name: "Burpees", sets: 3, reps: "12", rest: 45, equip: "Bodyweight" },
+                { name: "Mountain Climbers", sets: 3, reps: "30 sec", rest: 30, equip: "Bodyweight" }
+            ]},
+            "Tuesday": { focus: "Steady-State Cardio + Core", exercises: [
+                { name: "Treadmill Jog / Run", sets: 1, reps: "30 min", rest: 0, equip: "Treadmill" },
+                { name: "Plank Hold", sets: 4, reps: "45 sec", rest: 30, equip: "Bodyweight / Mat" },
+                { name: "Bicycle Crunches", sets: 3, reps: "20 reps/side", rest: 30, equip: "Bodyweight / Mat" }
+            ]},
+            "Wednesday": { focus: "HIIT Lower Body Circuit", exercises: [
+                { name: "Jump Squats", sets: 4, reps: "15", rest: 30, equip: "Bodyweight" },
+                { name: "Walking Lunges", sets: 3, reps: "12 reps/leg", rest: 45, equip: "Bodyweight" },
+                { name: "Glute Bridges", sets: 4, reps: "15", rest: 30, equip: "Bodyweight / Mat" },
+                { name: "High Knees", sets: 3, reps: "30 sec", rest: 20, equip: "Bodyweight" }
+            ]},
+            "Thursday": { focus: "Active Recovery + Stretch", exercises: [
+                { name: "Light Walk / Cycling", sets: 1, reps: "20-30 min", rest: 0, equip: "Outdoor or Cycle" },
+                { name: "Hip Flexor Stretch", sets: 3, reps: "30 sec hold", rest: 15, equip: "Bodyweight / Mat" },
+                { name: "Foam Rolling (full body)", sets: 1, reps: "10 min", rest: 0, equip: "Foam Roller" }
+            ]},
+            "Friday": { focus: "Full Body HIIT Burn", exercises: [
+                { name: "Burpees", sets: 4, reps: "15", rest: 30, equip: "Bodyweight" },
+                { name: "Jump Rope", sets: 4, reps: "60 sec", rest: 30, equip: "Jump Rope" },
+                { name: "Dumbbell Thrusters", sets: 3, reps: "12", rest: 45, equip: "Dumbbells" },
+                { name: "Box Jumps / Step-ups", sets: 3, reps: "10", rest: 45, equip: "Box / Step" }
+            ]}
+        }
+    },
+    powerlifting: {
+        name: "Powerlifting 4-Day",
+        equip: "Suggested Equipment: Barbell, Heavy Plates, Squat Rack with Safety Bars, Flat Bench, Lifting Belt, Wrist Wraps",
+        schedule: {
+            "Monday": { focus: "Squat Focus (Legs + Core)", exercises: [
+                { name: "Barbell Back Squat", sets: 5, reps: "5", rest: 180, equip: "Barbell + Squat Rack" },
+                { name: "Front Squat", sets: 3, reps: "4", rest: 150, equip: "Barbell + Squat Rack" },
+                { name: "Leg Press", sets: 3, reps: "8", rest: 120, equip: "Leg Press Machine" },
+                { name: "Hanging Leg Raises", sets: 3, reps: "15", rest: 60, equip: "Pull-up Bar" }
+            ]},
+            "Tuesday": { focus: "Bench Press Focus (Chest + Triceps)", exercises: [
+                { name: "Barbell Bench Press", sets: 5, reps: "5", rest: 180, equip: "Barbell + Flat Bench" },
+                { name: "Close-Grip Bench Press", sets: 3, reps: "6", rest: 120, equip: "Barbell + Flat Bench" },
+                { name: "Dumbbell Chest Flyes", sets: 3, reps: "10-12", rest: 90, equip: "Dumbbells + Bench" },
+                { name: "Tricep Skullcrushers", sets: 3, reps: "8", rest: 90, equip: "EZ Bar + Bench" }
+            ]},
+            "Thursday": { focus: "Deadlift Focus (Back + Hamstrings)", exercises: [
+                { name: "Conventional Barbell Deadlift", sets: 5, reps: "3-5", rest: 210, equip: "Barbell + Plates" },
+                { name: "Romanian Deadlift", sets: 3, reps: "6", rest: 150, equip: "Barbell" },
+                { name: "Bent-Over Barbell Row", sets: 4, reps: "5", rest: 120, equip: "Barbell + Plates" },
+                { name: "Lat Pulldown (Heavy)", sets: 3, reps: "8", rest: 90, equip: "Lat Pulldown Machine" }
+            ]},
+            "Saturday": { focus: "Overhead Press Focus (Shoulders + Upper Body)", exercises: [
+                { name: "Barbell Overhead Press (OHP)", sets: 5, reps: "5", rest: 180, equip: "Barbell + Rack" },
+                { name: "Push Press", sets: 3, reps: "5", rest: 150, equip: "Barbell" },
+                { name: "Lateral Deltoid Raises", sets: 4, reps: "12", rest: 60, equip: "Dumbbells" },
+                { name: "Face Pulls", sets: 3, reps: "15", rest: 60, equip: "Cable Machine" }
+            ]}
+        }
+    },
+    calisthenics: {
+        name: "Calisthenics / Bodyweight",
+        equip: "Suggested Equipment: Pull-up Bar, Dip Bars (optional), Mat — No gym required!",
+        schedule: {
+            "Monday": { focus: "Push Day (Chest, Shoulders, Triceps)", exercises: [
+                { name: "Push-ups", sets: 4, reps: "20-25", rest: 60, equip: "Bodyweight" },
+                { name: "Wide Push-ups", sets: 3, reps: "15-20", rest: 60, equip: "Bodyweight" },
+                { name: "Diamond Push-ups", sets: 3, reps: "12-15", rest: 60, equip: "Bodyweight" },
+                { name: "Pike Push-ups", sets: 3, reps: "12", rest: 60, equip: "Bodyweight" }
+            ]},
+            "Tuesday": { focus: "Pull Day (Back, Biceps)", exercises: [
+                { name: "Pull-ups", sets: 4, reps: "8-10", rest: 90, equip: "Pull-up Bar" },
+                { name: "Chin-ups", sets: 3, reps: "8", rest: 90, equip: "Pull-up Bar" },
+                { name: "Inverted Rows (Table)", sets: 3, reps: "12", rest: 60, equip: "Sturdy Table" },
+                { name: "Bodyweight Bicep Curls (towel)", sets: 3, reps: "10", rest: 60, equip: "Towel + Door" }
+            ]},
+            "Thursday": { focus: "Legs + Core", exercises: [
+                { name: "Bodyweight Squats", sets: 4, reps: "20", rest: 60, equip: "Bodyweight" },
+                { name: "Jump Squats", sets: 3, reps: "15", rest: 60, equip: "Bodyweight" },
+                { name: "Walking Lunges", sets: 3, reps: "12 reps/leg", rest: 60, equip: "Bodyweight" },
+                { name: "Glute Bridges", sets: 3, reps: "20", rest: 45, equip: "Bodyweight / Mat" }
+            ]},
+            "Friday": { focus: "Core + Full Body Conditioning", exercises: [
+                { name: "Plank Hold", sets: 4, reps: "45-60 sec", rest: 30, equip: "Bodyweight / Mat" },
+                { name: "Burpees", sets: 4, reps: "12", rest: 45, equip: "Bodyweight" },
+                { name: "Mountain Climbers", sets: 3, reps: "30 sec", rest: 30, equip: "Bodyweight / Mat" },
+                { name: "Bicycle Crunches", sets: 3, reps: "20 reps/side", rest: 30, equip: "Bodyweight / Mat" }
+            ]}
+        }
     }
 };
 
@@ -1566,15 +2088,26 @@ function mbToggleDay(day, checked) {
     mbRenderEmpty();
 }
 
+function mbSelectRoutineCard(cardEl, key) {
+    document.querySelectorAll('.mb-routine-card').forEach(function(c) { c.classList.remove('active'); });
+    if (cardEl) cardEl.classList.add('active');
+    mbLoadPreset(key);
+}
+
 function mbRenderEmpty() {
     var cont = document.getElementById('mb-days-container');
     if (mbSelectedDays.length === 0) {
         if (!cont.querySelector('.mb-empty-hint')) {
-            var hint = document.createElement('p');
-            hint.className = 'text-muted small fst-italic mb-empty-hint';
-            hint.textContent = 'Check the days above or pick a suggested routine to start adding exercises.';
-            cont.innerHTML = '';
-            cont.appendChild(hint);
+            cont.innerHTML = `
+                <div class="mb-empty-state-card mb-empty-hint">
+                    <div class="mb-empty-icon-wrap">
+                        <i class="bi bi-calendar-plus"></i>
+                    </div>
+                    <h6 class="fw-bold text-dark mb-1">No training days selected yet</h6>
+                    <p class="text-muted small mb-0" style="max-width: 400px; margin: 0 auto;">
+                        Check the days in Step 3 above or click one of the suggested routines in Step 2 to populate your exercise plan.
+                    </p>
+                </div>`;
         }
     } else {
         var hint = cont.querySelector('.mb-empty-hint');

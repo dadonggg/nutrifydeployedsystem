@@ -248,9 +248,24 @@ foreach (($openingHours ?? []) as $row) {
                 </div>
             </div>
 
-            <span class="badge px-3 py-2 shadow-sm" style="background: rgba(46,139,62,0.95); border: 1px solid rgba(255,255,255,0.3); border-radius: 10px; font-size: 0.85rem; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.4);">
-                <i class="bi bi-patch-check-fill me-1"></i>Verified
-            </span>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <?php if (!empty($programSuccessRate)): ?>
+                <div class="px-3 py-2 shadow-sm d-flex align-items-center gap-2" style="background: rgba(10, 30, 18, 0.85); border: 1.5px solid rgba(250, 204, 21, 0.7); border-radius: 12px; backdrop-filter: blur(8px); color: #fff;">
+                    <i class="bi bi-award-fill text-warning" style="font-size: 1.35rem;"></i>
+                    <div>
+                        <div style="font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; color: #fef08a;">Program Success Rate</div>
+                        <div style="font-size: 1.05rem; font-weight: 800; line-height: 1.1; color: #ffffff;">
+                            <span style="color: #facc15;"><?= number_format((float)($programSuccessRate['Ir'] ?? 0), 1) ?>%</span>
+                            <span style="font-size: 0.75rem; font-weight: 500; opacity: 0.9; margin-left: 3px; color: #f1f5f9;">(<?= (int)($programSuccessRate['ns'] ?? 0) ?>/<?= (int)($programSuccessRate['N'] ?? 0) ?> Goals Met)</span>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
+
+                <span class="badge px-3 py-2 shadow-sm" style="background: rgba(46,139,62,0.95); border: 1px solid rgba(255,255,255,0.3); border-radius: 10px; font-size: 0.85rem; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.4); height: fit-content;">
+                    <i class="bi bi-patch-check-fill me-1"></i>Verified
+                </span>
+            </div>
         </div>
     </div>
 </div>

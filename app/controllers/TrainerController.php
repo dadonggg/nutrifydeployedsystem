@@ -250,6 +250,123 @@ final class TrainerController extends Controller
         $progressModel = new FitnessProgressTracking();
         $progressList = $progressModel->findSentToTrainer((int)$employee['id']);
 
+        // Enrich progress list with weight history and goal alignment status
+        $pdo = \App\Core\Database::pdo();
+        foreach ($progressList as &$prog) {
+            $mId = (int)($prog['member_id'] ?? 0);
+            $uId = (int)($prog['user_id'] ?? 0);
+            
+            // Get weight history for this member
+            $wHistory = [];
+            try {
+                $stmtW = $pdo->prepare(
+                    'SELECT weight_kg, date_logged, goal_type 
+                     FROM member_weight_logs 
+                     WHERE member_id = ? OR user_id = ? 
+                     ORDER BY date_logged ASC'
+                );
+                $stmtW->execute([$mId, $uId]);
+                $wHistory = $stmtW->fetchAll(\PDO::FETCH_ASSOC);
+            } catch (\Exception $e) {
+                $wHistory = [];
+            }
+            
+            $prog['weight_history'] = $wHistory;
+            $firstW = !empty($wHistory) ? reset($wHistory) : null;
+            $latestW = !empty($wHistory) ? end($wHistory) : null;
+            $prog['first_weight'] = $firstW;
+            $prog['latest_weight'] = $latestW;
+            
+            $fGoal = $prog['member_goal'] ?? null;
+            if (!$fGoal && $latestW && !empty($latestW['goal_type'])) {
+                $fGoal = $latestW['goal_type'];
+            }
+            $prog['fitness_goal'] = $fGoal;
+            
+            $netChange = null;
+            if ($firstW && $latestW && $firstW['date_logged'] !== $latestW['date_logged']) {
+                $netChange = round((float)$latestW['weight_kg'] - (float)$firstW['weight_kg'], 1);
+            }
+            $prog['net_change'] = $netChange;
+            
+            // Determine Goal Alignment for Trainer Alert
+            $alignment = [
+                'status'     => 'none', // 'warning', 'on_track', 'none'
+                'badge'      => '',
+                'badgeClass' => 'bg-secondary',
+                'title'      => '',
+                'alert'      => '',
+                'coach_hint' => '',
+            ];
+            
+            if (count($wHistory) >= 2 && $netChange !== null && !empty($fGoal)) {
+                if ($fGoal === 'cutting') {
+                    if ($netChange > 0.1) {
+                        $alignment = [
+                            'status'     => 'warning',
+                            'badge'      => '⚠️ Off Track Alert',
+                            'badgeClass' => 'bg-danger text-white',
+                            'title'      => '⚠️ Goal Misalignment: Weight is Increasing during Cutting Phase',
+                            'alert'      => "Client is on a Cutting (Fat Loss) goal, but weight has INCREASED by +{$netChange} kg (Starting: {$firstW['weight_kg']} kg → Current: {$latestW['weight_kg']} kg). Caloric deficit adjustment or cardio recommendation needed.",
+                            'coach_hint' => "Hi {$prog['client_name']}, I noticed your weight has increased by +{$netChange} kg while on your Cutting phase. Let's audit your daily calorie intake, track food portions more strictly, and add 20 minutes of cardio.",
+                        ];
+                    } elseif ($netChange < -0.1) {
+                        $alignment = [
+                            'status'     => 'on_track',
+                            'badge'      => '✅ On Track',
+                            'badgeClass' => 'bg-success text-white',
+                            'title'      => 'Cutting Phase On Track',
+                            'alert'      => "Client weight decreased by " . abs($netChange) . " kg, aligning with fat loss.",
+                            'coach_hint' => "Great consistency! Your weight is dropping steadily. Keep maintaining your daily routine and protein intake.",
+                        ];
+                    }
+                } elseif ($fGoal === 'bulking') {
+                    if ($netChange < -0.1) {
+                        $alignment = [
+                            'status'     => 'warning',
+                            'badge'      => '⚠️ Off Track Alert',
+                            'badgeClass' => 'bg-danger text-white',
+                            'title'      => '⚠️ Goal Misalignment: Weight is Decreasing during Bulking Phase',
+                            'alert'      => "Client is on a Bulking (Mass Gain) goal, but weight has DECREASED by {$netChange} kg (Starting: {$firstW['weight_kg']} kg → Current: {$latestW['weight_kg']} kg). Calorie and protein surplus increase needed.",
+                            'coach_hint' => "Hi {$prog['client_name']}, your weight is dropping (-" . abs($netChange) . " kg) despite a Bulking goal. Let's increase your daily calories by +300-500 kcal with extra complex carbs and protein.",
+                        ];
+                    } elseif ($netChange > 0.1) {
+                        $alignment = [
+                            'status'     => 'on_track',
+                            'badge'      => '✅ On Track',
+                            'badgeClass' => 'bg-success text-white',
+                            'title'      => 'Bulking Phase On Track',
+                            'alert'      => "Client weight increased by +{$netChange} kg, successfully building mass.",
+                            'coach_hint' => "Solid progress! Your weight gain is on track. Focus on progressive overload in your lifts.",
+                        ];
+                    }
+                } elseif ($fGoal === 'maintaining') {
+                    if (abs($netChange) > 1.0) {
+                        $driftText = $netChange > 0 ? "+{$netChange} kg" : "{$netChange} kg";
+                        $alignment = [
+                            'status'     => 'warning',
+                            'badge'      => '⚠️ Maintenance Drift',
+                            'badgeClass' => 'bg-warning text-dark',
+                            'title'      => '⚠️ Maintenance Window Drift Alert',
+                            'alert'      => "Client weight has drifted by {$driftText} beyond the ±1.0 kg maintenance window.",
+                            'coach_hint' => "Hi {$prog['client_name']}, your weight has fluctuated by {$driftText}. Let's re-balance your daily maintenance caloric intake to stabilize.",
+                        ];
+                    } else {
+                        $alignment = [
+                            'status'     => 'on_track',
+                            'badge'      => '✅ On Track',
+                            'badgeClass' => 'bg-primary text-white',
+                            'title'      => 'Maintenance On Track',
+                            'alert'      => "Client weight is steady within the ±1.0 kg maintenance window.",
+                            'coach_hint' => "Excellent stability! Your maintenance calories are well-balanced.",
+                        ];
+                    }
+                }
+            }
+            $prog['alignment'] = $alignment;
+        }
+        unset($prog);
+
         $this->view('trainer/progress_review', [
             'user' => $user,
             'employee' => $employee,
@@ -914,27 +1031,37 @@ final class TrainerController extends Controller
                 $maxCap = (int)($slot['max_capacity'] ?? 1);
                 $isFullyBooked = $newBookings >= $maxCap;
 
-                $pdo->prepare(
-                    "UPDATE trainer_schedules 
-                     SET current_bookings = :cb, status = :status 
-                     WHERE id = :id"
-                )->execute([
-                    ':cb' => $newBookings,
-                    ':status' => $isFullyBooked ? 'booked' : 'available',
-                    ':id' => $slot['id']
-                ]);
+                try {
+                    $pdo->prepare(
+                        "UPDATE trainer_schedules 
+                         SET current_bookings = :cb, status = :status 
+                         WHERE id = :id"
+                    )->execute([
+                        ':cb' => $newBookings,
+                        ':status' => $isFullyBooked ? 'booked' : 'available',
+                        ':id' => $slot['id']
+                    ]);
+                } catch (\PDOException $e) {
+                    $pdo->prepare(
+                        "UPDATE trainer_schedules 
+                         SET status = 'booked' 
+                         WHERE id = :id"
+                    )->execute([':id' => $slot['id']]);
+                }
 
                 // Decline other pending requests on this slot ONLY if it is now fully booked
                 if ($isFullyBooked) {
-                    $pdo->prepare(
-                        "UPDATE fitness_service_requests SET status = 'cancelled' 
-                         WHERE assigned_trainer_id = :tid AND booking_date = :bdate AND booking_time = :btime AND id != :id AND status = 'pending'"
-                    )->execute([
-                        ':tid' => $employee['id'],
-                        ':bdate' => $request['booking_date'],
-                        ':btime' => $request['booking_time'],
-                        ':id' => $requestId
-                    ]);
+                    try {
+                        $pdo->prepare(
+                            "UPDATE fitness_service_requests SET status = 'cancelled' 
+                             WHERE assigned_trainer_id = :tid AND booking_date = :bdate AND booking_time = :btime AND id != :id AND status = 'pending'"
+                        )->execute([
+                            ':tid' => $employee['id'],
+                            ':bdate' => $request['booking_date'],
+                            ':btime' => $request['booking_time'],
+                            ':id' => $requestId
+                        ]);
+                    } catch (\Throwable $e) {}
                 }
             } else {
                 // Fallback for safety
@@ -992,14 +1119,22 @@ final class TrainerController extends Controller
 
             if ($slot) {
                 $newBookings = max(0, (int)($slot['current_bookings'] ?? 0) - 1);
-                $pdo->prepare(
-                    "UPDATE trainer_schedules 
-                     SET current_bookings = :cb, status = 'available' 
-                     WHERE id = :id"
-                )->execute([
-                    ':cb' => $newBookings,
-                    ':id' => $slot['id']
-                ]);
+                try {
+                    $pdo->prepare(
+                        "UPDATE trainer_schedules 
+                         SET current_bookings = :cb, status = 'available' 
+                         WHERE id = :id"
+                    )->execute([
+                        ':cb' => $newBookings,
+                        ':id' => $slot['id']
+                    ]);
+                } catch (\PDOException $e) {
+                    $pdo->prepare(
+                        "UPDATE trainer_schedules 
+                         SET status = 'available' 
+                         WHERE id = :id"
+                    )->execute([':id' => $slot['id']]);
+                }
             } else {
                 $pdo->prepare(
                     "UPDATE trainer_schedules SET status = 'available', request_id = NULL 

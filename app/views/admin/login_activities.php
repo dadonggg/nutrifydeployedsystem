@@ -7,32 +7,23 @@
 
 $activities = $activities ?? [];
 $stats = $stats ?? [];
+$pageTitle = 'Login Activities - Admin';
+require __DIR__ . '/../partials/header.php';
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login Activities - Admin</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <style>
-        .activity-success { color: #28a745; }
-        .activity-failed { color: #dc3545; }
-        .activity-logout { color: #6c757d; }
-        .activity-otp { color: #007bff; }
-        .stat-card {
-            border-left: 4px solid;
-            margin-bottom: 1rem;
-        }
-        .stat-card.success { border-left-color: #28a745; }
-        .stat-card.failed { border-left-color: #dc3545; }
-        .stat-card.logout { border-left-color: #6c757d; }
-        .stat-card.otp { border-left-color: #007bff; }
-    </style>
-</head>
-<body>
-    <?php include __DIR__ . '/../partials/header.php'; ?>
+<style>
+    .activity-success { color: #28a745; }
+    .activity-failed { color: #dc3545; }
+    .activity-logout { color: #6c757d; }
+    .activity-otp { color: #007bff; }
+    .stat-card {
+        border-left: 4px solid;
+        margin-bottom: 1rem;
+    }
+    .stat-card.success { border-left-color: #28a745; }
+    .stat-card.failed { border-left-color: #dc3545; }
+    .stat-card.logout { border-left-color: #6c757d; }
+    .stat-card.otp { border-left-color: #007bff; }
+</style>
 
     <div class="container mt-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
@@ -187,6 +178,3 @@ $stats = $stats ?? [];
     </div>
 
     <?php include __DIR__ . '/../partials/footer.php'; ?>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>

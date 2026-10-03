@@ -6,7 +6,7 @@ $pageTitle = 'Welcome to Nutrify';
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="description" content="Nutrify — A modern, all-in-one gym management platform for fitness enthusiasts, gym owners, and staff.">
     <title>Nutrify — Gym Management System</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">

@@ -186,9 +186,9 @@ body {
 </style>
 
 <div class="p-1">
-  <div class="d-flex justify-content-between align-items-center mb-4">
+  <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-4">
     <div>
-      <h1 class="fw-extrabold mb-1" style="color: var(--text-primary); font-size: 26px; font-weight: 800;">
+      <h1 class="fw-extrabold mb-1" style="color: var(--text-primary); font-size: clamp(20px, 4vw, 26px); font-weight: 800;">
         <i class="bi bi-person-arms-up me-2" style="color: var(--accent-teal)"></i>Trainer Dashboard
       </h1>
       <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 0;">Welcome, <?= $displayName ?>. Manage your clients and fitness programs.</p>

@@ -39,6 +39,8 @@ final class Mailer
 
             $phpMailer = new PHPMailer(true);
             $phpMailer->isSMTP();
+            $phpMailer->Timeout = 8;
+            $phpMailer->SMTPAutoTLS = true;
             if ($debug > 0) {
                 $phpMailer->SMTPDebug = $debug;
                 $phpMailer->Debugoutput = function (string $str, int $level) {

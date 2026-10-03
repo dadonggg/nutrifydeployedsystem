@@ -9,36 +9,36 @@ require __DIR__ . '/../partials/header.php';
     <p class="text-muted mb-0">Verify membership registrations, assign trainers, and manage gym members.</p>
 </div>
 
-<div class="row g-4 mb-4">
-    <div class="col-md-3">
-        <div class="stat-card p-3">
-            <div class="d-flex align-items-center gap-3">
-                <div class="stat-icon bg-warning bg-opacity-25 text-warning"><i class="bi bi-person-plus"></i></div>
-                <div><div class="text-muted small">Pending Applications</div><div class="fw-bold"><?= $pendingCount ?></div></div>
+<div class="row g-2 g-sm-3 mb-3 mb-md-4">
+    <div class="col-6 col-lg-3">
+        <div class="stat-card p-2.5 p-sm-3 h-100">
+            <div class="d-flex align-items-center gap-2 gap-sm-3">
+                <div class="stat-icon bg-warning bg-opacity-15 text-warning"><i class="bi bi-person-plus"></i></div>
+                <div class="min-w-0 flex-grow-1"><div class="text-muted small text-truncate">Pending Apps</div><div class="fw-bold stat-value text-dark"><?= $pendingCount ?></div></div>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="stat-card p-3">
-            <div class="d-flex align-items-center gap-3">
-                <div class="stat-icon bg-success bg-opacity-25 text-success"><i class="bi bi-people-fill"></i></div>
-                <div><div class="text-muted small">Total Gym Members</div><div class="fw-bold"><?= count($gymMembers) ?></div></div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card p-2.5 p-sm-3 h-100">
+            <div class="d-flex align-items-center gap-2 gap-sm-3">
+                <div class="stat-icon bg-success bg-opacity-15 text-success"><i class="bi bi-people-fill"></i></div>
+                <div class="min-w-0 flex-grow-1"><div class="text-muted small text-truncate">Gym Members</div><div class="fw-bold stat-value text-dark"><?= count($gymMembers) ?></div></div>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="stat-card p-3">
-            <div class="d-flex align-items-center gap-3">
-                <div class="stat-icon bg-info bg-opacity-25 text-info"><i class="bi bi-person-badge"></i></div>
-                <div><div class="text-muted small">Total Employees</div><div class="fw-bold"><?= count($employees) ?></div></div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card p-2.5 p-sm-3 h-100">
+            <div class="d-flex align-items-center gap-2 gap-sm-3">
+                <div class="stat-icon bg-info bg-opacity-15 text-info"><i class="bi bi-person-badge"></i></div>
+                <div class="min-w-0 flex-grow-1"><div class="text-muted small text-truncate">Employees</div><div class="fw-bold stat-value text-dark"><?= count($employees) ?></div></div>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="stat-card p-3">
-            <div class="d-flex align-items-center gap-3">
-                <div class="stat-icon bg-danger bg-opacity-25 text-danger"><i class="bi bi-person-hearts"></i></div>
-                <div><div class="text-muted small">Fitness Requests</div><div class="fw-bold"><?= (int)($fitnessStats['pending'] ?? 0) ?></div></div>
+    <div class="col-6 col-lg-3">
+        <div class="stat-card p-2.5 p-sm-3 h-100">
+            <div class="d-flex align-items-center gap-2 gap-sm-3">
+                <div class="stat-icon bg-danger bg-opacity-15 text-danger"><i class="bi bi-person-hearts"></i></div>
+                <div class="min-w-0 flex-grow-1"><div class="text-muted small text-truncate">Fitness Reqs</div><div class="fw-bold stat-value text-dark"><?= (int)($fitnessStats['pending'] ?? 0) ?></div></div>
             </div>
         </div>
     </div>

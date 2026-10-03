@@ -42,6 +42,19 @@ $expertiseTags = !empty($profile['expertise']) ? explode(',', $profile['expertis
                 <span class="small fw-bold ms-1"><?= number_format($ratingVal, 1) ?></span>
                 <span class="text-muted small">(<?= $reviewCount ?> reviews)</span>
             </div>
+
+            <!-- Feedback Response Rate -->
+            <?php if (!empty($feedbackMetrics)): ?>
+            <div class="p-3 my-3 rounded-3 text-center" style="background: linear-gradient(135deg, #0a2f18 0%, #14532d 50%, #0d5f57 100%); color: #ffffff; border: 1.5px solid rgba(56, 189, 248, 0.5); box-shadow: 0 4px 14px rgba(0,0,0,0.08);">
+                <div class="d-flex align-items-center justify-content-center gap-1 mb-1">
+                    <i class="bi bi-chat-heart-fill text-info fs-6"></i>
+                    <span style="font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 700; color: #bae6fd;">Feedback Response Rate</span>
+                </div>
+                <div class="mt-1 mb-0" style="color: #38bdf8; font-weight: 800; font-size: 2rem; line-height: 1.1; text-shadow: 0 2px 8px rgba(0,0,0,0.3);">
+                    <?= number_format((float)$feedbackMetrics['R_fb'], 1) ?>%
+                </div>
+            </div>
+            <?php endif; ?>
             
             <div class="text-start border-top pt-3 mt-2">
                 <h3 class="h6 fw-bold mb-2">Specializations</h3>

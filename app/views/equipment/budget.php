@@ -116,6 +116,7 @@ require __DIR__ . '/../partials/header.php';
         <div class="small text-muted">Total: <strong class="text-danger">₱<?= number_format($totalOpex, 2) ?></strong></div>
     </div>
     <div class="card-body p-0">
+        <div class="table-responsive">
         <table class="table table-hover mb-0 align-middle">
             <thead><tr><th>Description</th><th>Category</th><th>Amount</th><th>Date</th></tr></thead>
             <tbody>
@@ -129,6 +130,7 @@ require __DIR__ . '/../partials/header.php';
                 <?php endforeach; ?>
             </tbody>
         </table>
+        </div>
     </div>
 </div>
 <?php endif; ?>
@@ -141,6 +143,7 @@ require __DIR__ . '/../partials/header.php';
         <div class="small text-muted">Total: <strong class="text-success">₱<?= number_format($totalRevenue, 2) ?></strong></div>
     </div>
     <div class="card-body p-0">
+        <div class="table-responsive">
         <table class="table table-hover mb-0 align-middle">
             <thead><tr><th>Description</th><th>Amount</th><th>Date</th></tr></thead>
             <tbody>
@@ -153,6 +156,7 @@ require __DIR__ . '/../partials/header.php';
                 <?php endforeach; ?>
             </tbody>
         </table>
+        </div>
     </div>
 </div>
 <?php endif; ?>

@@ -44,8 +44,8 @@ require __DIR__ . '/../partials/header.php';
                         <h3 class="h5 fw-bold mb-1"><?= htmlspecialchars($t['fullname']) ?></h3>
                         <p class="text-success small mb-2"><i class="bi bi-building me-1"></i>Hired at <?= htmlspecialchars($t['gym_name'] ?? 'Nutrify Gym') ?></p>
                         
-                        <!-- Ratings -->
-                        <div class="d-flex align-items-center gap-1 mb-3">
+                        <!-- Ratings & Response Rate -->
+                        <div class="d-flex align-items-center justify-content-center gap-1 mb-2">
                             <div class="text-warning">
                                 <?php for ($i = 1; $i <= 5; $i++): ?>
                                     <i class="bi <?= $i <= round($ratingVal) ? 'bi-star-fill' : 'bi-star' ?>"></i>
@@ -54,6 +54,14 @@ require __DIR__ . '/../partials/header.php';
                             <span class="small fw-semibold ms-1"><?= number_format($ratingVal, 1) ?></span>
                             <span class="text-muted small">(<?= $reviewCount ?> reviews)</span>
                         </div>
+
+                        <?php if (isset($t['feedback_response_rate'])): ?>
+                        <div class="mb-3">
+                            <span class="badge bg-info-subtle text-dark border border-info-subtle px-2 py-1 small" title="Feedback Response Rate">
+                                <i class="bi bi-chat-heart-fill text-info me-1"></i><strong><?= number_format((float)$t['feedback_response_rate'], 1) ?>%</strong> Response Rate
+                            </span>
+                        </div>
+                        <?php endif; ?>
                         
                         <!-- Expertise Tags -->
                         <div class="mb-3 text-center flex-grow-1">

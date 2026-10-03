@@ -248,11 +248,22 @@ final class AuthController extends Controller
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $otp = trim((string)($_POST['otp'] ?? ''));
+            $userId = (int)$_SESSION['pending_otp_user_id'];
+            
+            // Track attempts in session to prevent brute force
+            $_SESSION['otp_attempts'] = (int)($_SESSION['otp_attempts'] ?? 0) + 1;
+
+            if ($_SESSION['otp_attempts'] > 5) {
+                $otpModel = new OtpCode();
+                $otpModel->deleteAllForUser($userId);
+                unset($_SESSION['pending_otp_user_id'], $_SESSION['otp_attempts']);
+                $_SESSION['login_error'] = 'Too many failed OTP attempts. Please sign in again.';
+                $this->redirect('auth/login');
+            }
 
             if (!preg_match('/^[0-9]{6}$/', $otp)) {
                 $error = 'OTP must be 6 digits.';
             } else {
-                $userId = (int)$_SESSION['pending_otp_user_id'];
                 $otpModel = new OtpCode();
                 $match = $otpModel->latestValidForUser($userId, $otp);
 
@@ -263,13 +274,18 @@ final class AuthController extends Controller
                 $loginActivityModel = new LoginActivity();
 
                 if (!$match) {
+                    $remaining = 5 - (int)$_SESSION['otp_attempts'];
                     $loginActivityModel->logOtpFailed($userId, $email, 'Invalid or expired OTP');
-                    $error = 'Invalid or expired OTP.';
+                    $error = 'Invalid or expired OTP. (' . max(0, $remaining) . ' attempts remaining)';
                 } else {
                     $otpModel->deleteAllForUser($userId);
                     $loginActivityModel->logLoginSuccess($userId, $email);
+                    
+                    // Prevent session fixation
+                    session_regenerate_id(true);
+                    
                     $_SESSION['user_id'] = $userId;
-                    unset($_SESSION['pending_otp_user_id']);
+                    unset($_SESSION['pending_otp_user_id'], $_SESSION['otp_attempts']);
                     $this->redirect('home/index');
                 }
             }
@@ -407,14 +423,23 @@ final class AuthController extends Controller
         $token = bin2hex(random_bytes(32));
         $verificationModel = new EmailVerification();
         $verificationModel->deleteByUserId($userId);
-        $verificationModel->create($userId, $token);
 
-        $baseUrl = rtrim((string)($config['app']['base_url'] ?? ''), '/');
-        $verifyLink = $baseUrl . '/index.php?r=auth/verify&token=' . urlencode($token);
+        // If Google did not verify the email, send verification link without blocking login
+        if (!$googleEmailVerified) {
+            $verificationModel->create($userId, $token);
+            $baseUrl = rtrim((string)($config['app']['base_url'] ?? ''), '/');
+            $verifyLink = $baseUrl . '/index.php?r=auth/verify&token=' . urlencode($token);
+            $mailBody = '<p>Click the link below to verify your email:</p>' .
+                '<p><a href="' . htmlspecialchars($verifyLink) . '">Verify Email</a></p>';
+            try {
+                Mailer::send($email, 'Verify your email', $mailBody);
+            } catch (\Throwable $e) {
+                // Silently ignore mail failure during OAuth
+            }
+        }
 
-        $mailBody = '<p>Click the link below to verify your email:</p>' .
-            '<p><a href="' . htmlspecialchars($verifyLink) . '">Verify Email</a></p>';
-        Mailer::send($email, 'Verify your email', $mailBody);
+        // Prevent session fixation
+        session_regenerate_id(true);
 
         $_SESSION['user_id'] = $userId;
         $this->redirect('home/index');
@@ -422,41 +447,111 @@ final class AuthController extends Controller
 
     private function postFormJson(string $url, array $fields): ?array
     {
-        $ch = curl_init($url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/x-www-form-urlencoded']);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($fields));
-        $response = curl_exec($ch);
-        $err = curl_error($ch);
-        $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+        $payload = http_build_query($fields);
 
-        if ($response === false || $err !== '' || $status >= 400) {
-            return null;
+        // Try cURL first with strict timeouts & SSL tolerance for free hosting
+        if (function_exists('curl_init')) {
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST           => true,
+                CURLOPT_POSTFIELDS     => $payload,
+                CURLOPT_HTTPHEADER     => ['Content-Type: application/x-www-form-urlencoded'],
+                CURLOPT_CONNECTTIMEOUT => 8,
+                CURLOPT_TIMEOUT        => 12,
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_SSL_VERIFYHOST => 0,
+                CURLOPT_USERAGENT      => 'NutrifyApp/1.0',
+            ]);
+            $response = curl_exec($ch);
+            $status   = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+
+            if ($response !== false && $status >= 200 && $status < 400) {
+                $decoded = json_decode((string)$response, true);
+                if (is_array($decoded)) {
+                    return $decoded;
+                }
+            }
         }
 
-        $decoded = json_decode($response, true);
-        return is_array($decoded) ? $decoded : null;
+        // Fallback to file_get_contents with stream context
+        $opts = [
+            'http' => [
+                'method'  => 'POST',
+                'header'  => "Content-Type: application/x-www-form-urlencoded\r\nUser-Agent: NutrifyApp/1.0\r\n",
+                'content' => $payload,
+                'timeout' => 12,
+                'ignore_errors' => true,
+            ],
+            'ssl' => [
+                'verify_peer'      => false,
+                'verify_peer_name' => false,
+            ],
+        ];
+        $ctx = stream_context_create($opts);
+        $streamRes = @file_get_contents($url, false, $ctx);
+        if ($streamRes !== false) {
+            $decoded = json_decode($streamRes, true);
+            return is_array($decoded) ? $decoded : null;
+        }
+
+        return null;
     }
 
     private function getJson(string $url, array $headers = []): ?array
     {
-        $ch = curl_init($url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        if ($headers) {
-            curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-        }
-        $response = curl_exec($ch);
-        $err = curl_error($ch);
-        $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+        // Try cURL first
+        if (function_exists('curl_init')) {
+            $ch = curl_init($url);
+            $opts = [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_CONNECTTIMEOUT => 8,
+                CURLOPT_TIMEOUT        => 12,
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_SSL_VERIFYHOST => 0,
+                CURLOPT_USERAGENT      => 'NutrifyApp/1.0',
+            ];
+            if (!empty($headers)) {
+                $opts[CURLOPT_HTTPHEADER] = $headers;
+            }
+            curl_setopt_array($ch, $opts);
+            $response = curl_exec($ch);
+            $status   = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
 
-        if ($response === false || $err !== '' || $status >= 400) {
-            return null;
+            if ($response !== false && $status >= 200 && $status < 400) {
+                $decoded = json_decode((string)$response, true);
+                if (is_array($decoded)) {
+                    return $decoded;
+                }
+            }
         }
 
-        $decoded = json_decode($response, true);
-        return is_array($decoded) ? $decoded : null;
+        // Fallback to file_get_contents
+        $headerStr = "User-Agent: NutrifyApp/1.0\r\n";
+        if (!empty($headers)) {
+            $headerStr .= implode("\r\n", $headers) . "\r\n";
+        }
+        $streamOpts = [
+            'http' => [
+                'method'        => 'GET',
+                'header'        => $headerStr,
+                'timeout'       => 12,
+                'ignore_errors' => true,
+            ],
+            'ssl' => [
+                'verify_peer'      => false,
+                'verify_peer_name' => false,
+            ],
+        ];
+        $ctx = stream_context_create($streamOpts);
+        $streamRes = @file_get_contents($url, false, $ctx);
+        if ($streamRes !== false) {
+            $decoded = json_decode($streamRes, true);
+            return is_array($decoded) ? $decoded : null;
+        }
+
+        return null;
     }
 }

@@ -224,13 +224,32 @@ body {
   </div>
   <?php else: ?>
   <div class="d-flex flex-column gap-3">
-    <?php foreach ($progressList as $idx => $prog): ?>
-    <div class="progress-item">
+    <?php foreach ($progressList as $idx => $prog): 
+        $align = $prog['alignment'] ?? [];
+        $isWarning = ($align['status'] ?? '') === 'warning';
+        $isOnTrack = ($align['status'] ?? '') === 'on_track';
+        $coachHint = $align['coach_hint'] ?? '';
+    ?>
+    <div class="progress-item" style="<?= $isWarning ? 'border-left: 4px solid #ef4444;' : ($isOnTrack ? 'border-left: 4px solid #10b981;' : '') ?>">
       <div class="p-4">
         <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
           <div>
-            <div class="d-flex align-items-center gap-2 mb-2">
-              <h5 class="mb-0 fw-bold" style="font-size: 1.1rem; color: var(--text-primary);"><?= htmlspecialchars($prog['client_name'] ?? $prog['member_fullname'] ?? 'Client') ?></h5>
+            <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+              <h5 class="mb-0 fw-bold" style="font-size: 1.15rem; color: var(--text-primary);"><?= htmlspecialchars($prog['client_name'] ?? $prog['member_fullname'] ?? 'Client') ?></h5>
+              <?php if (!empty($prog['fitness_goal'])): ?>
+              <span class="badge" style="background:#f1f5f9; color:#334155; font-size:11px; border:1px solid #cbd5e1;">
+                🎯 Goal: <?= ucfirst($prog['fitness_goal']) ?>
+              </span>
+              <?php endif; ?>
+              <?php if ($isWarning): ?>
+              <span class="badge bg-danger text-white" style="font-size:11px; font-weight:700;">
+                <i class="bi bi-exclamation-triangle-fill me-1"></i>Off Track / Warning
+              </span>
+              <?php elseif ($isOnTrack): ?>
+              <span class="badge bg-success text-white" style="font-size:11px; font-weight:700;">
+                <i class="bi bi-check-circle-fill me-1"></i>On Track
+              </span>
+              <?php endif; ?>
               <?php if (!empty($prog['feedback_given'])): ?>
               <span class="sent-badge"><i class="bi bi-check-circle-fill me-1"></i>Feedback Sent</span>
               <?php endif; ?>
@@ -259,27 +278,85 @@ body {
           </div>
         </div>
 
+        <!-- ── Client Goal Misalignment Alert Banner ── -->
+        <?php if (!empty($align['alert'])): ?>
+        <div class="p-3 my-3 rounded-3 d-flex align-items-start gap-2 shadow-sm" 
+             style="background: <?= $isWarning ? '#fef2f2' : '#f0fdf4' ?>; border: 1.5px solid <?= $isWarning ? '#fca5a5' : '#86efac' ?>; color: <?= $isWarning ? '#991b1b' : '#166534' ?>;">
+          <i class="bi <?= $isWarning ? 'bi-exclamation-triangle-fill text-danger' : 'bi-check-circle-fill text-success' ?> fs-5 mt-0 flex-shrink-0"></i>
+          <div class="flex-grow-1">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-1">
+              <strong style="font-size: 13.5px;"><?= htmlspecialchars($align['title'] ?? 'Goal Alignment Notice') ?></strong>
+              <span class="badge <?= $align['badgeClass'] ?? 'bg-secondary' ?> px-2 py-1" style="font-size: 11px;">
+                <?= $align['badge'] ?? '' ?>
+              </span>
+            </div>
+            <div class="small" style="font-size: 12.5px; line-height: 1.4;">
+              <?= htmlspecialchars($align['alert']) ?>
+            </div>
+            <?php if (!empty($prog['first_weight']) && !empty($prog['latest_weight'])): ?>
+            <div class="mt-2 pt-2 border-top d-flex gap-3 text-muted small flex-wrap" style="font-size: 11.5px; border-color: rgba(0,0,0,0.08) !important;">
+              <span>Starting: <strong class="text-dark"><?= number_format((float)$prog['first_weight']['weight_kg'], 1) ?> kg</strong> (<?= date('M j', strtotime($prog['first_weight']['date_logged'])) ?>)</span>
+              <span>&rarr;</span>
+              <span>Current: <strong class="text-dark"><?= number_format((float)$prog['latest_weight']['weight_kg'], 1) ?> kg</strong> (<?= date('M j', strtotime($prog['latest_weight']['date_logged'])) ?>)</span>
+              <span class="fw-bold" style="color:<?= (float)$prog['net_change'] > 0 ? ($prog['fitness_goal'] === 'cutting' ? '#ef4444' : '#10b981') : ($prog['fitness_goal'] === 'bulking' ? '#ef4444' : '#10b981') ?>;">
+                Net Change: <?= (float)$prog['net_change'] > 0 ? '+' : '' ?><?= $prog['net_change'] ?> kg
+              </span>
+            </div>
+            <?php endif; ?>
+          </div>
+        </div>
+        <?php endif; ?>
+
         <!-- Feedback Button + Form -->
         <div class="mt-3 pt-3" style="border-top: 1px solid var(--border-card);">
-          <button class="btn-feedback" onclick="toggleFeedback(<?= $idx ?>)">
-            <i class="bi bi-chat-left-text me-1"></i>Send Feedback
-          </button>
+          <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <button class="btn-feedback <?= $isWarning ? 'btn-danger text-white border-0' : '' ?>" 
+                    style="<?= $isWarning ? 'background:#ef4444; color:#fff !important;' : '' ?>"
+                    onclick="toggleFeedback(<?= $idx ?>)">
+              <i class="bi bi-chat-left-text me-1"></i><?= $isWarning ? 'Provide Corrective Feedback' : 'Send Feedback' ?>
+            </button>
+            <?php if ($isWarning): ?>
+            <small class="text-danger fw-semibold"><i class="bi bi-bell-fill me-1"></i>Client requires guidance on weight trajectory</small>
+            <?php endif; ?>
+          </div>
 
           <div class="feedback-form" id="fbForm<?= $idx ?>">
             <form method="POST" action="index.php?r=trainer/sendFeedback">
               <input type="hidden" name="progress_id" value="<?= $prog['id'] ?>">
               <input type="hidden" name="service_request_id" value="<?= $prog['service_request_id'] ?>">
               <input type="hidden" name="member_id" value="<?= $prog['member_id'] ?>">
+              
+              <?php if (!empty($coachHint)): ?>
+              <div class="mb-3 p-2 rounded-2 bg-white border border-warning d-flex align-items-center justify-content-between gap-2">
+                <small class="text-muted" style="font-size: 11.5px;">
+                  <i class="bi bi-lightbulb-fill text-warning me-1"></i><strong>Coach Suggestion:</strong> <?= htmlspecialchars(mb_strimwidth($coachHint, 0, 100, '...')) ?>
+                </small>
+                <button type="button" class="btn btn-sm btn-outline-warning text-dark py-0 px-2 fw-semibold" style="font-size:11px; white-space:nowrap;"
+                        onclick="autofillFeedback(<?= $idx ?>, <?= htmlspecialchars(json_encode($coachHint), ENT_QUOTES) ?>)">
+                  ⚡ Autofill Suggestion
+                </button>
+              </div>
+              <?php endif; ?>
+
               <div class="row g-3">
+                <div class="col-md-8">
+                  <label class="fit-label">Feedback Status</label>
+                  <select name="feedback_status" class="form-select fit-input form-select-sm">
+                    <option value="needs_adjustment" <?= $isWarning ? 'selected' : '' ?>>⚠️ Needs Adjustment / Off Track</option>
+                    <option value="on_track" <?= $isOnTrack ? 'selected' : '' ?>>✅ On Track</option>
+                    <option value="plateau">⚖️ Plateau / Steady</option>
+                    <option value="goal_achieved">🏆 Goal Achieved</option>
+                  </select>
+                </div>
                 <div class="col-12">
                   <label class="fit-label">Feedback Message <span style="color:#ef4444">*</span></label>
-                  <textarea name="feedback_text" class="form-control fit-input" rows="3" required
-                            placeholder="Overall assessment of the client's progress, what they're doing well..."></textarea>
+                  <textarea name="feedback_text" id="fbText<?= $idx ?>" class="form-control fit-input" rows="3" required
+                            placeholder="Overall assessment of the client's progress, what they're doing well, and what to adjust..."></textarea>
                 </div>
                 <div class="col-md-4">
                   <label class="fit-label">Areas of Improvement</label>
-                  <textarea name="areas_of_improvement" class="form-control fit-input" rows="3"
-                            placeholder="Specific areas to work on..."></textarea>
+                  <textarea name="areas_of_improvement" id="fbAreas<?= $idx ?>" class="form-control fit-input" rows="3"
+                            placeholder="e.g. Daily caloric deficit tracking, portion size control, cardio frequency..."></textarea>
                 </div>
                 <div class="col-md-4">
                   <label class="fit-label">Encouragement</label>
@@ -289,7 +366,7 @@ body {
                 <div class="col-md-4">
                   <label class="fit-label">Next Steps</label>
                   <textarea name="next_steps" class="form-control fit-input" rows="3"
-                            placeholder="What to focus on next..."></textarea>
+                            placeholder="e.g. Log every meal daily, weigh in twice weekly, adjust calorie target..."></textarea>
                 </div>
                 <div class="col-12 d-flex gap-2 justify-content-end">
                   <button type="button" class="btn-cancel-feedback" onclick="toggleFeedback(<?= $idx ?>)">Cancel</button>
@@ -311,7 +388,15 @@ body {
 <script>
 function toggleFeedback(idx) {
   const form = document.getElementById('fbForm' + idx);
-  form.classList.toggle('open');
+  if (form) form.classList.toggle('open');
+}
+
+function autofillFeedback(idx, hintText) {
+  const txt = document.getElementById('fbText' + idx);
+  if (txt) {
+    txt.value = hintText;
+    txt.focus();
+  }
 }
 </script>
 

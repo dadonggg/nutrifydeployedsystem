@@ -1,0 +1,743 @@
+/* ==========================================================================
+   NUTRIFY - RESPONSIVE DESIGN SYSTEM (responsive.css)
+   Mobile-first responsive layer for ALL user roles:
+   1. Fitness Enthusiast
+   2. Fitness Trainer
+   3. Gym Owner
+   4. Administrative Officer
+   5. Admin
+   ========================================================================== */
+
+:root {
+    --header-h: 56px;
+    --sidebar-w: 260px;
+    --bottom-nav-h: 62px;
+}
+
+/* ─── 1. Global Box Sizing, Viewport & Anti-Overflow (Step 2) ─── */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+    max-width: 100%;
+    overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    min-height: 100dvh;
+    background: #f5f7f4;
+}
+
+/* ─── Layout: Sidebar + Main wrapper ─── */
+.d-flex:has(> .sidebar),
+.app-layout {
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+}
+
+/* Prevent any element or media from bursting viewport width */
+img,
+svg,
+video,
+canvas,
+audio,
+iframe,
+embed,
+object {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Ensure emails, URLs and long text break cleanly */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+span,
+a,
+td,
+th,
+label,
+div,
+small,
+strong {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+/* Responsive typography scaling */
+h1,
+.h1 {
+    font-size: clamp(1.35rem, 4.5vw, 2.1rem);
+}
+
+h2,
+.h2 {
+    font-size: clamp(1.15rem, 3.8vw, 1.7rem);
+}
+
+h3,
+.h3 {
+    font-size: clamp(1.02rem, 3.2vw, 1.35rem);
+}
+
+h4,
+.h4 {
+    font-size: clamp(0.92rem, 2.8vw, 1.15rem);
+}
+
+/* Tap targets at least 44x44px */
+button,
+.btn,
+input,
+select,
+textarea,
+.nav-link,
+.dropdown-item,
+.mobile-bottom-item {
+    min-height: 44px;
+    touch-action: manipulation;
+}
+
+.btn-sm {
+    min-height: 38px;
+}
+
+@media (max-width: 767.98px) {
+    .btn-sm {
+        min-height: 44px;
+    }
+}
+
+/* Form controls base 16px to prevent iOS auto-zoom */
+input,
+select,
+textarea,
+.form-control,
+.form-select {
+    font-size: 16px !important;
+}
+
+/* ─── 2. Top Header (Fixed) ─── */
+.app-header,
+.top-navbar {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: var(--header-h);
+    min-height: var(--header-h);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    background: #ffffff !important;
+    border-bottom: 1px solid rgba(27, 107, 42, 0.12);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+/* ─── 3. Sidebar & Main Content Layout (Desktop 992px+) ─── */
+@media (min-width: 992px) {
+
+    .app-sidebar,
+    .sidebar,
+    .sidebar.offcanvas-lg,
+    .sidebar.offcanvas-md {
+        position: fixed !important;
+        top: var(--header-h) !important;
+        left: 0 !important;
+        bottom: 0 !important;
+        width: var(--sidebar-w) !important;
+        min-width: var(--sidebar-w) !important;
+        max-width: var(--sidebar-w) !important;
+        height: calc(100dvh - var(--header-h)) !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        /* removes the horizontal scrollbar */
+        overscroll-behavior: contain;
+        z-index: 900;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+        background: #122117 !important;
+        background-color: #122117 !important;
+        border-right: 1px solid rgba(255, 255, 255, 0.06) !important;
+        visibility: visible !important;
+        transform: none !important;
+        display: flex !important;
+        flex-direction: column !important;
+        box-shadow: none !important;
+    }
+
+    .app-content,
+    .main-content {
+        margin-left: var(--sidebar-w) !important;
+        padding: calc(var(--header-h) + 16px) 20px 24px !important;
+        min-width: 0 !important;
+        min-height: 100dvh;
+        width: auto !important;
+        max-width: calc(100% - var(--sidebar-w)) !important;
+        overflow-x: hidden;
+        flex: 1 1 auto !important;
+    }
+
+    .sidebar-backdrop {
+        display: none !important;
+    }
+}
+
+/* ─── 4. Mobile & Tablet Drawer (991px and below) ─── */
+@media (max-width: 991.98px) {
+
+    /* Hide desktop user actions in slim header */
+    .top-navbar .nav-user-name,
+    .top-navbar .nav-badge-role,
+    .top-navbar .d-none.d-md-flex {
+        display: none !important;
+    }
+
+    /* Sidebar transforms into full height slide-in drawer */
+    .app-sidebar,
+    .sidebar,
+    .sidebar.offcanvas-lg,
+    .sidebar.offcanvas-md {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        bottom: 0 !important;
+        width: min(80vw, 300px) !important;
+        max-width: 80vw !important;
+        height: 100dvh !important;
+        transform: translateX(-100%) !important;
+        transition: transform 0.25s ease !important;
+        padding-top: var(--header-h) !important;
+        z-index: 1100 !important;
+        background: #122117 !important;
+        background-color: #122117 !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        overscroll-behavior: contain;
+        visibility: visible !important;
+        display: flex !important;
+        flex-direction: column !important;
+        box-shadow: 4px 0 24px rgba(0, 0, 0, 0.5) !important;
+        padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)) !important;
+    }
+
+    .app-sidebar.open,
+    .app-sidebar.show,
+    .sidebar.open,
+    .sidebar.show,
+    .sidebar.active {
+        transform: translateX(0) !important;
+    }
+
+    .app-content,
+    .main-content {
+        margin-left: 0 !important;
+        padding: calc(var(--header-h) + 12px) 12px calc(var(--bottom-nav-h, 62px) + env(safe-area-inset-bottom, 0px) + 24px) !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        min-height: 100dvh;
+        overflow-x: hidden;
+    }
+
+    /* Dark Overlay Backdrop */
+    .sidebar-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(2px);
+        -webkit-backdrop-filter: blur(2px);
+        z-index: 1050;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.25s ease, visibility 0.25s ease;
+    }
+
+    .sidebar-backdrop.show,
+    .sidebar-backdrop.open {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    /* Lock body scroll while drawer is open */
+    body.drawer-open {
+        overflow: hidden !important;
+        touch-action: none;
+    }
+}
+
+/* Sidebar Scrollbar */
+.sidebar::-webkit-scrollbar {
+    width: 5px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.4);
+}
+
+/* ─── 5. Sidebar Typography & Colors (Original High-Contrast Design) ─── */
+.sidebar,
+.sidebar.offcanvas-md,
+.sidebar.offcanvas-lg,
+.sidebar .offcanvas-body,
+.sidebar .offcanvas-header {
+    background: #122117 !important;
+    background-color: #122117 !important;
+    color: rgba(255, 255, 255, 0.95) !important;
+    --bs-offcanvas-bg: #122117;
+    --bs-offcanvas-color: rgba(255, 255, 255, 0.95);
+}
+
+.sidebar .nav-link,
+.app-sidebar .nav-link,
+.sidebar .nav-link:link,
+.sidebar .nav-link:visited {
+    color: rgba(255, 255, 255, 0.95) !important;
+    opacity: 1 !important;
+    padding: 0.65rem 0.85rem;
+    min-height: 44px;
+    border-radius: 0.5rem;
+    margin: 2px 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+    max-width: calc(var(--sidebar-w) - 16px);
+}
+
+.sidebar .nav-link span,
+.app-sidebar .nav-link span {
+    color: rgba(255, 255, 255, 0.95) !important;
+    opacity: 1 !important;
+    display: inline-flex;
+    align-items: center;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+    flex: 1;
+}
+
+.sidebar .nav-link:hover,
+.sidebar .nav-link.active,
+.app-sidebar .nav-link:hover,
+.app-sidebar .nav-link.active {
+    color: #ffffff !important;
+    background: linear-gradient(90deg, #1B6B2A, #2E8B3E) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+    font-weight: 600;
+}
+
+.sidebar .nav-link i {
+    width: 22px;
+    min-width: 22px;
+    text-align: center;
+    margin-right: 8px;
+    color: #4CAF50 !important;
+    font-size: 1.05rem;
+    flex-shrink: 0;
+}
+
+.sidebar .nav-section {
+    color: #a5d6a7 !important;
+    opacity: 1 !important;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    padding: 0.6rem 1rem 0.3rem;
+    margin-top: 0.75rem;
+    font-weight: 700 !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+    white-space: nowrap;
+}
+
+/* ─── 6. Tables & Scroll Containers (Step 4) ─── */
+.table-scroll,
+.table-responsive {
+    width: 100%;
+    overflow-x: auto !important;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 12px;
+    scrollbar-width: thin;
+    scrollbar-color: #9aa0a6 transparent;
+    margin-bottom: 1rem;
+    position: relative;
+    max-width: 100%;
+}
+
+/* Visible Custom Scrollbar */
+.table-scroll::-webkit-scrollbar,
+.table-responsive::-webkit-scrollbar {
+    height: 8px;
+}
+
+.table-scroll::-webkit-scrollbar-track,
+.table-responsive::-webkit-scrollbar-track {
+    background: #e9ecef;
+    border-radius: 4px;
+}
+
+.table-scroll::-webkit-scrollbar-thumb,
+.table-responsive::-webkit-scrollbar-thumb {
+    background: #9aa0a6;
+    border-radius: 4px;
+}
+
+.table-scroll table,
+.table-responsive table {
+    min-width: 640px !important;
+    width: 100%;
+    margin-bottom: 0;
+}
+
+.table-scroll th,
+.table-scroll td,
+.table-responsive th,
+.table-responsive td {
+    white-space: nowrap;
+    padding: 10px 12px;
+    vertical-align: middle;
+}
+
+/* Sticky Table Header */
+.table-scroll thead th,
+.table-responsive thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: #f8faf9;
+}
+
+/* Swipe Hint under tables on phones */
+.table-scroll-hint {
+    display: none;
+    font-size: 0.74rem;
+    color: #6c757d;
+    margin-top: -0.4rem;
+    margin-bottom: 1rem;
+    text-align: right;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+    user-select: none;
+}
+
+@media (max-width: 767.98px) {
+    .table-scroll-hint {
+        display: flex;
+    }
+
+    /* Search and filter bars stack vertically on phones with full width */
+    .search-filter-bar,
+    .filter-bar,
+    .card-header .d-flex:not(.nav):not(.align-items-center.justify-content-between) {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.75rem !important;
+    }
+
+    .search-filter-bar input,
+    .search-filter-bar select,
+    .search-filter-bar button,
+    .search-filter-bar .btn,
+    .filter-bar input,
+    .filter-bar select,
+    .filter-bar button,
+    .filter-bar .btn {
+        width: 100% !important;
+    }
+}
+
+/* ─── 7. Cards, Stats & Grids (Step 5) ─── */
+/* Stat cards: CSS grid with 2 columns on phones, 4 on desktop, 1 column below 360px */
+.stat-grid,
+.stats-grid,
+.stat-cards-grid,
+.row.stat-row,
+.row:has(> [class*="col-"] > .stat-card) {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+}
+
+.stat-grid>*,
+.stats-grid>*,
+.stat-cards-grid>*,
+.row.stat-row>*,
+.row:has(> [class*="col-"] > .stat-card)>[class*="col-"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.stat-card {
+    min-width: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 14px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+@media (max-width: 359.98px) {
+
+    .stat-grid,
+    .stats-grid,
+    .stat-cards-grid,
+    .row.stat-row,
+    .row:has(> [class*="col-"] > .stat-card) {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+@media (min-width: 992px) {
+
+    .stat-grid,
+    .stats-grid,
+    .stat-cards-grid,
+    .row.stat-row,
+    .row:has(> [class*="col-"] > .stat-card) {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important;
+    }
+}
+
+/* Dashboards, charts & calendars container responsiveness */
+.chart-container,
+.canvas-container {
+    position: relative;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: hidden;
+}
+
+canvas {
+    max-width: 100% !important;
+    height: auto;
+}
+
+/* Card Lists: 1 column on phones, 2 on tablets, 3+ on desktop */
+.card-grid,
+.directory-grid,
+.plans-grid,
+.card-list-grid,
+.membership-grid {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+}
+
+@media (min-width: 768px) and (max-width: 991.98px) {
+
+    .card-grid,
+    .directory-grid,
+    .plans-grid,
+    .card-list-grid,
+    .membership-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+}
+
+@media (min-width: 992px) {
+
+    .card-grid,
+    .directory-grid,
+    .plans-grid,
+    .card-list-grid,
+    .membership-grid {
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important;
+    }
+}
+
+/* ─── 8. Page Headers, Buttons & Forms (Step 6) ─── */
+/* Page title and action button stack vertically on phones */
+@media (max-width: 767.98px) {
+
+    .page-header,
+    .main-content>.d-flex.justify-content-between,
+    .main-content>.d-flex.align-items-center.justify-content-between,
+    .main-content>div>.d-flex.justify-content-between,
+    .main-content>div>.d-flex.align-items-center.justify-content-between {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.75rem !important;
+    }
+
+    /* Action buttons: rounded rectangles, full-width on phones, never oversized circles */
+    .page-header .btn,
+    .main-content>.d-flex.justify-content-between .btn,
+    .main-content>.d-flex.align-items-center.justify-content-between .btn,
+    .main-content>div>.d-flex.justify-content-between .btn,
+    .main-content>div>.d-flex.align-items-center.justify-content-between .btn {
+        width: 100% !important;
+        border-radius: 10px !important;
+        display: inline-flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        min-height: 44px !important;
+    }
+
+    /* Forms: single column on phones with full-width inputs */
+    form .row>[class*="col-"] {
+        width: 100% !important;
+        max-width: 100% !important;
+        flex: 0 0 100% !important;
+    }
+}
+
+/* Form field styling & labels */
+form label,
+.form-label {
+    display: block;
+    margin-bottom: 0.35rem;
+    font-weight: 600;
+}
+
+form input,
+form select,
+form textarea {
+    width: 100%;
+}
+
+form button[type="submit"],
+form .btn-submit {
+    position: relative;
+    z-index: 5;
+    margin-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* ─── 9. Modals & Dialogs (Step 6) ─── */
+@media (max-width: 575.98px) {
+    .modal-dialog {
+        margin: 12px auto !important;
+        max-width: calc(100vw - 24px) !important;
+    }
+
+    .modal-content {
+        border-radius: 16px !important;
+        max-height: 90dvh !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    .modal-body {
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch;
+        max-height: calc(90dvh - 120px) !important;
+    }
+}
+
+.modal-header .btn-close {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 0.75rem;
+    opacity: 0.85;
+}
+
+/* ─── 10. QR Scanner & Camera Views (Step 6) ─── */
+#reader,
+#qr-reader,
+#qr-video,
+.qr-scanner-box {
+    max-width: 100% !important;
+    width: 100% !important;
+    overflow: hidden;
+    border-radius: 12px;
+}
+
+#reader video,
+#qr-reader video,
+video.scanner-feed {
+    max-width: 100% !important;
+    width: 100% !important;
+    height: auto !important;
+    object-fit: cover !important;
+    border-radius: 12px;
+}
+
+/* ─── 11. Alerts, Badges, Dropdowns & Toasts (Step 6) ─── */
+.alert,
+.toast,
+.dropdown-menu {
+    max-width: calc(100vw - 24px) !important;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.badge {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+
+/* ─── 12. Specific Page & Grid Overrides (Step 7 Audit) ─── */
+@media (max-width: 767.98px) {
+
+    /* Fitness Plan Set Tracker */
+    .set-tracker-table {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .set-tracker-header,
+    .set-row {
+        min-width: 320px;
+    }
+
+    /* Edit Meal Plan Rows */
+    .meal-row {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 8px !important;
+    }
+
+    .meal-row>div:nth-child(3) {
+        grid-column: span 2;
+    }
+
+    /* Campaign Builder Form Rows & Dynamic Input Rows */
+    .form-row,
+    .form-row-3,
+    .metric-grid,
+    [style*="grid-template-columns"] {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Fitness Goals Analytics Cards */
+    .fit-analytics-card {
+        min-width: 0 !important;
+    }
+}

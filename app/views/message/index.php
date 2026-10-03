@@ -150,8 +150,12 @@ $userRole = $user['role'] ?? 'customer';
 }
 
 @media(max-width: 768px) {
-    .chat-wrapper { flex-direction: column; height: auto; }
-    .chat-threads-sidebar { width: 100%; height: 220px; }
+    .chat-wrapper { 
+        flex-direction: column; 
+        height: auto; 
+        min-height: calc(100dvh - var(--bottom-nav-h, 62px) - 120px);
+    }
+    .chat-threads-sidebar { width: 100%; height: 200px; }
 }
 </style>
 

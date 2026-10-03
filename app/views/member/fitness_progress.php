@@ -443,12 +443,20 @@ body {
     <div class="p-4">
       <div class="d-flex flex-column gap-3">
         <?php foreach ($feedbacks as $fb): ?>
-        <div class="feedback-item">
-          <div class="feedback-meta d-flex justify-content-between">
-            <span class="fw-semibold"><i class="bi bi-person-badge me-1"></i><?= htmlspecialchars($fb['trainer_name'] ?? 'Trainer') ?></span>
-            <span><?= date('M j, Y', strtotime($fb['created_at'])) ?> · Score: <strong style="color: var(--accent-teal)"><?= $fb['consistency_score'] ?></strong></span>
+        <div class="feedback-item mb-3 p-3 rounded" style="background:#f8fafc; border:1px solid #e2e8f0;">
+          <div class="feedback-meta d-flex justify-content-between align-items-center mb-2">
+            <span class="fw-semibold text-dark"><i class="bi bi-person-badge me-1 text-success"></i><?= htmlspecialchars($fb['trainer_name'] ?? 'Trainer') ?></span>
+            <div class="d-flex align-items-center gap-2">
+              <?php if (!empty($fb['feedback_status'])): ?>
+                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1"><?= htmlspecialchars(str_replace('_', ' ', strtoupper((string)$fb['feedback_status']))) ?></span>
+              <?php endif; ?>
+              <small class="text-muted"><?= date('M j, Y', strtotime($fb['created_at'])) ?></small>
+            </div>
           </div>
-          <div class="feedback-text"><?= nl2br(htmlspecialchars($fb['feedback_text'])) ?></div>
+          <?php if (!empty($fb['feedback_subject'])): ?>
+            <h6 class="fw-bold text-dark mb-2"><?= htmlspecialchars($fb['feedback_subject']) ?></h6>
+          <?php endif; ?>
+          <div class="feedback-text text-secondary mb-2"><?= nl2br(htmlspecialchars($fb['feedback_text'])) ?></div>
           <?php if (!empty($fb['areas_of_improvement'])): ?>
           <div class="mt-2 p-2 rounded" style="background:#fffbeb; border:1px solid #fef3c7;">
             <small style="color:#d97706; font-weight:600; text-transform: uppercase; font-size: 11px;">Areas to Improve:</small>
@@ -457,8 +465,14 @@ body {
           <?php endif; ?>
           <?php if (!empty($fb['next_steps'])): ?>
           <div class="mt-2 p-2 rounded" style="background:#eff6ff; border:1px solid #bfdbfe;">
-            <small style="color:#3b82f6; font-weight:600; text-transform: uppercase; font-size: 11px;">Next Steps:</small>
+            <small style="color:#3b82f6; font-weight:600; text-transform: uppercase; font-size: 11px;">Suggested Next Steps / Program Tweaks:</small>
             <p class="mb-0 text-dark" style="font-size:13px;"><?= nl2br(htmlspecialchars($fb['next_steps'])) ?></p>
+          </div>
+          <?php endif; ?>
+          <?php if (!empty($fb['encouragement'])): ?>
+          <div class="mt-2 p-2 rounded" style="background:#f0fdf4; border:1px solid #bbf7d0;">
+            <small style="color:#16a34a; font-weight:600; text-transform: uppercase; font-size: 11px;">Coach Encouragement:</small>
+            <p class="mb-0 text-dark" style="font-size:13px;"><?= nl2br(htmlspecialchars($fb['encouragement'])) ?></p>
           </div>
           <?php endif; ?>
         </div>

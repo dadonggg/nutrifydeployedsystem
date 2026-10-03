@@ -238,7 +238,157 @@ final class MembershipController extends Controller
         return null;
     }
 
-    /** List all verified gyms for membership application */
+    /**
+     * Check / reconcile PayMongo payment status for the logged-in user
+     */
+    public function checkpaymentAction(): void
+    {
+        $user = $this->requireLogin();
+        $appModel = new MembershipApplication();
+        $application = $appModel->findByUserId((int)$user['id']);
+
+        if (!$application || empty($application['paymongo_payment_id'])) {
+            $_SESSION['flash_error'] = 'No pending online payment found for your account.';
+            $this->redirect('membership/apply?gym_id=' . (int)($application['gym_owner_id'] ?? 0));
+        }
+
+        $gymOwnerId = (int)$application['gym_owner_id'];
+        $paymongoModel = new \App\Models\PayMongoConfig();
+        $config = $paymongoModel->findByOwnerId($gymOwnerId);
+
+        if (!$config || empty($config['secret_key'])) {
+            $_SESSION['flash_error'] = 'Gym payment configuration error. Please contact the gym administrator.';
+            $this->redirect('membership/apply?gym_id=' . $gymOwnerId);
+        }
+
+        $secretKey = $config['secret_key'];
+        $paymentLinkId = $application['paymongo_payment_id'];
+
+        try {
+            $curl = curl_init();
+            curl_setopt_array($curl, [
+                CURLOPT_URL => "https://api.paymongo.com/v1/links/" . urlencode($paymentLinkId),
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_HTTPHEADER => [
+                    "accept: application/json",
+                    "authorization: Basic " . base64_encode($secretKey . ":"),
+                ]
+            ]);
+            $response = curl_exec($curl);
+            $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+            curl_close($curl);
+
+            if ($httpCode === 200) {
+                $data = json_decode($response, true);
+                $status = $data['data']['attributes']['status'] ?? '';
+
+                if ($status === 'paid') {
+                    $pdo = \App\Core\Database::pdo();
+                    $pdo->beginTransaction();
+
+                    try {
+                        $paymentType = $application['payment_type'] ?? 'regular_monthly';
+                        $paymentAmount = round((float)($application['payment_amount'] ?? 0), 2);
+                        $trainerId = !empty($application['assigned_trainer_id']) ? (int)$application['assigned_trainer_id'] : null;
+
+                        $code = GymMember::generateCode();
+                        $memberModel = new GymMember();
+                        $memberId = $memberModel->create((int)$user['id'], (int)$application['id'], $code, $trainerId, $paymentType, $paymentAmount);
+
+                        $qrToken = GymMember::generateQrToken();
+                        $memberIdNumber = GymMember::generateMemberId($memberId);
+                        $issueDate = date('Y-m-d');
+                        $memberModel->stampMemberCard($memberId, $qrToken, $memberIdNumber, $issueDate);
+
+                        $appModel->updateStatus((int)$application['id'], 'approved', 'Online payment verified via PayMongo. Member ID: ' . $memberIdNumber, (int)$gymOwnerId);
+
+                        // Record revenue in financial_records
+                        $finModel = new \App\Models\FinancialRecord();
+                        if ($finModel->tableExists()) {
+                            $finModel->addRevenue(
+                                $gymOwnerId,
+                                'PayMongo Online Payment - ' . $application['first_name'] . ' ' . $application['last_name'],
+                                $paymentAmount,
+                                'Online payment for ' . $paymentType,
+                                'Membership Revenue'
+                            );
+                        }
+
+                        $pdo->commit();
+
+                        $_SESSION['flash_success'] = 'Payment verified successfully! Welcome to the gym. Member ID: ' . $memberIdNumber;
+                        $this->redirect('membership/verifycode');
+                    } catch (\Throwable $e) {
+                        if ($pdo->inTransaction()) { $pdo->rollBack(); }
+                        error_log('Error completing payment: ' . $e->getMessage());
+                        $_SESSION['flash_error'] = 'An error occurred while activating your membership. Please contact gym support.';
+                        $this->redirect('membership/apply?gym_id=' . $gymOwnerId);
+                    }
+                } else {
+                    $_SESSION['flash_error'] = 'Payment status is currently "' . htmlspecialchars($status) . '". If you have already paid, please wait a minute and verify again.';
+                    $this->redirect('membership/apply?gym_id=' . $gymOwnerId);
+                }
+            } else {
+                $_SESSION['flash_error'] = 'Unable to check PayMongo payment status at this moment. Please try again.';
+                $this->redirect('membership/apply?gym_id=' . $gymOwnerId);
+            }
+        } catch (\Throwable $e) {
+            error_log('PayMongo Check Payment Error: ' . $e->getMessage());
+            $_SESSION['flash_error'] = 'Payment check failed: ' . $e->getMessage();
+            $this->redirect('membership/apply?gym_id=' . $gymOwnerId);
+        }
+    }
+
+    /**
+     * Webhook receiver for PayMongo events
+     */
+    public function webhookAction(): void
+    {
+        header('Content-Type: application/json');
+        $payload = file_get_contents('php://input');
+        $data = json_decode($payload, true);
+
+        if (!$data || empty($data['data']['attributes']['type'])) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Invalid webhook payload']);
+            exit;
+        }
+
+        $eventType = $data['data']['attributes']['type'];
+        if ($eventType === 'link.payment.paid' || $eventType === 'payment.paid') {
+            $paymentData = $data['data']['attributes']['data'] ?? [];
+            $linkId = $paymentData['id'] ?? null;
+
+            if ($linkId) {
+                $db = \App\Core\Database::pdo();
+                $stmt = $db->prepare('SELECT * FROM membership_applications WHERE paymongo_payment_id = ? LIMIT 1');
+                $stmt->execute([$linkId]);
+                $app = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+                if ($app && $app['status'] !== 'approved') {
+                    $appModel = new MembershipApplication();
+                    $paymentType = $app['payment_type'] ?? 'regular_monthly';
+                    $paymentAmount = round((float)($app['payment_amount'] ?? 0), 2);
+                    $trainerId = !empty($app['assigned_trainer_id']) ? (int)$app['assigned_trainer_id'] : null;
+
+                    $code = GymMember::generateCode();
+                    $memberModel = new GymMember();
+                    $memberId = $memberModel->create((int)$app['user_id'], (int)$app['id'], $code, $trainerId, $paymentType, $paymentAmount);
+
+                    $qrToken = GymMember::generateQrToken();
+                    $memberIdNumber = GymMember::generateMemberId($memberId);
+                    $issueDate = date('Y-m-d');
+                    $memberModel->stampMemberCard($memberId, $qrToken, $memberIdNumber, $issueDate);
+
+                    $appModel->updateStatus((int)$app['id'], 'approved', 'Paid via PayMongo Webhook. Member ID: ' . $memberIdNumber, (int)$app['gym_owner_id']);
+                }
+            }
+        }
+
+        http_response_code(200);
+        echo json_encode(['received' => true]);
+        exit;
+    }
     public function gymsAction(): void
     {
         $user = $this->requireLogin();
@@ -313,6 +463,15 @@ final class MembershipController extends Controller
             $trainingPackages = $pkgModel->findByGymOwner($ownerId, true);
         } catch (\Exception $e) { /* graceful */ }
 
+        // Program success rate for the gym
+        $programSuccessRate = null;
+        try {
+            $analyticsModel = new \App\Models\ProgramSuccessAnalytics();
+            $programSuccessRate = $analyticsModel->calculateProgramSuccessRate();
+        } catch (\Throwable $e) {
+            $programSuccessRate = null;
+        }
+
         // Opening hours – stored as JSON in legal_documents if column exists
         $openingHours = [];
         try {
@@ -327,14 +486,15 @@ final class MembershipController extends Controller
         } catch (\Exception $e) { /* column may not exist yet */ }
 
         $this->view('membership/gym_profile', [
-            'user'             => $user,
-            'gym'              => $gym,
-            'owner'            => $owner,
-            'equipment'        => $equipment,
-            'services'         => $services,
-            'plans'            => $plans,
-            'trainingPackages' => $trainingPackages,
-            'openingHours'     => $openingHours,
+            'user'                => $user,
+            'gym'                 => $gym,
+            'owner'               => $owner,
+            'equipment'           => $equipment,
+            'services'            => $services,
+            'plans'               => $plans,
+            'trainingPackages'    => $trainingPackages,
+            'openingHours'        => $openingHours,
+            'programSuccessRate'  => $programSuccessRate,
         ]);
     }
 
@@ -780,7 +940,7 @@ PROMPT;
         }
 
         // Try primary model, then fallbacks if model not found
-        $modelsToTry = array_unique([$model, 'gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro']);
+        $modelsToTry = array_unique([$model, 'gemini-3.8-flash', 'gemini-3.7-flash', 'gemini-flash-latest', 'gemini-2.5-flash-lite']);
 
         foreach ($modelsToTry as $currentModel) {
             $url = "https://generativelanguage.googleapis.com/v1beta/models/{$currentModel}:generateContent?key={$apiKey}";
@@ -798,7 +958,10 @@ PROMPT;
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_POST           => true,
                 CURLOPT_POSTFIELDS     => $body,
-                CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
+                CURLOPT_HTTPHEADER     => [
+                    'Content-Type: application/json',
+                    'x-goog-api-key: ' . $apiKey,
+                ],
                 CURLOPT_TIMEOUT        => 90,           // extended for free hosting
                 CURLOPT_CONNECTTIMEOUT => 10,
                 CURLOPT_SSL_VERIFYPEER => true,

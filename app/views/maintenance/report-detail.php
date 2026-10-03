@@ -155,6 +155,91 @@ else { $statusClass = 'secondary'; }
             <p class="text-muted mb-4"><i class="bi bi-info-circle me-1"></i>No checklist items recorded.</p>
         <?php endif; ?>
 
+        <!-- Attached Purchase Request Section (if exists) -->
+        <?php if (!empty($purchaseRequest)):
+            $prStatusClass = [
+                'pending'   => 'warning',
+                'approved'  => 'success',
+                'rejected'  => 'danger',
+                'purchased' => 'info',
+            ][$purchaseRequest['status'] ?? 'pending'] ?? 'secondary';
+        ?>
+        <div class="mb-4 p-3 rounded border" style="background:#fdfefe">
+            <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                <h5 class="fw-bold mb-0 text-dark">
+                    <i class="bi bi-cart-check me-2 text-warning"></i>Attached Purchase Request #<?= (int)$purchaseRequest['id'] ?>
+                </h5>
+                <span class="badge bg-<?= $prStatusClass ?> fs-6 px-3 py-1">
+                    <?= ucfirst($purchaseRequest['status'] ?? 'pending') ?>
+                </span>
+            </div>
+
+            <?php if (!empty($purchaseRequestItems)): ?>
+            <div class="table-responsive mb-3">
+                <table class="table table-sm table-bordered mb-0" style="font-size:.9rem">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width:40px">#</th>
+                            <th>Item Name</th>
+                            <th style="width:60px;text-align:center">Qty</th>
+                            <th style="width:110px;text-align:right">Price (₱)</th>
+                            <th style="width:110px;text-align:right">Subtotal (₱)</th>
+                            <th style="width:130px">Staff Note</th>
+                            <th style="width:110px;text-align:center">Decision</th>
+                            <th>Owner Reason</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($purchaseRequestItems as $pi => $item):
+                            $sub = (float)($item['quantity'] ?? 1) * (float)($item['unit_price'] ?? 0);
+                            if ($item['status'] === 'approved' || !empty($item['is_approved'])) {
+                                $itemBadge = '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Approved</span>';
+                            } elseif ($item['status'] === 'purchased' || !empty($item['is_purchased'])) {
+                                $itemBadge = '<span class="badge bg-info"><i class="bi bi-bag-check me-1"></i>Purchased</span>';
+                            } elseif ($item['status'] === 'rejected') {
+                                $itemBadge = '<span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>Not Buying</span>';
+                            } else {
+                                $itemBadge = '<span class="badge bg-secondary">Pending</span>';
+                            }
+                        ?>
+                        <tr>
+                            <td><?= $pi + 1 ?></td>
+                            <td><strong><?= htmlspecialchars($item['item_name'] ?? '') ?></strong></td>
+                            <td class="text-center"><?= (int)($item['quantity'] ?? 1) ?></td>
+                            <td class="text-end">₱<?= number_format((float)($item['unit_price'] ?? 0), 2) ?></td>
+                            <td class="text-end fw-bold text-success">₱<?= number_format($sub, 2) ?></td>
+                            <td><?= htmlspecialchars($item['notes'] ?? '—') ?></td>
+                            <td class="text-center"><?= $itemBadge ?></td>
+                            <td>
+                                <?php if (!empty($item['rejection_reason'])): ?>
+                                    <span class="text-danger small"><i class="bi bi-info-circle me-1"></i><?= htmlspecialchars($item['rejection_reason']) ?></span>
+                                <?php else: ?>
+                                    <span class="text-muted">—</span>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                    <tfoot class="table-light">
+                        <tr>
+                            <td colspan="4" class="text-end fw-bold text-uppercase">Total Estimated Cost:</td>
+                            <td class="text-end fw-bold text-success fs-6">₱<?= number_format((float)($purchaseRequest['total_amount'] ?? 0), 2) ?></td>
+                            <td colspan="3"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            <?php endif; ?>
+
+            <?php if (!empty($purchaseRequest['admin_notes'])): ?>
+            <div class="p-2 rounded bg-light border">
+                <small class="text-muted fw-bold d-block text-uppercase" style="font-size:.7rem;letter-spacing:1px">Owner / Admin Response Notes:</small>
+                <div class="mt-1" style="font-size:.9rem;white-space:pre-wrap"><?= htmlspecialchars($purchaseRequest['admin_notes']) ?></div>
+            </div>
+            <?php endif; ?>
+        </div>
+        <?php endif; ?>
+
         <!-- Condition & Remarks -->
         <div class="row g-3 mb-4">
             <div class="col-md-4">

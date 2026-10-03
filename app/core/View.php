@@ -21,6 +21,13 @@ final class View
             }
         }
 
+        if (!isset($data['csrf_token'])) {
+            $data['csrf_token'] = Controller::csrfToken();
+        }
+        if (!isset($data['csrf_input'])) {
+            $data['csrf_input'] = Controller::csrfInput();
+        }
+
         extract($data, EXTR_SKIP);
         require $path;
     }

@@ -33,7 +33,7 @@ body {
   margin-bottom: 2rem;
 }
 .welcome-title {
-  font-size: 28px;
+  font-size: clamp(20px, 5vw, 28px);
   font-weight: 700;
   color: var(--text-primary);
   margin-bottom: 0.25rem;
@@ -72,24 +72,37 @@ body {
   background: var(--card-white);
   border: 1px solid var(--border-light);
   border-radius: 12px;
-  padding: 1.5rem;
+  padding: 1.15rem 1rem;
   box-shadow: var(--shadow-sm);
   transition: all 0.3s ease;
   height: 100%;
+}
+@media (min-width: 768px) {
+  .stat-card-modern {
+    padding: 1.5rem;
+  }
 }
 .stat-card-modern:hover {
   box-shadow: var(--shadow-md);
   transform: translateY(-4px);
 }
 .stat-icon-circle {
-  width: 56px;
-  height: 56px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
-  margin-bottom: 1rem;
+  font-size: 22px;
+  margin-bottom: 0.75rem;
+}
+@media (min-width: 768px) {
+  .stat-icon-circle {
+    width: 56px;
+    height: 56px;
+    font-size: 24px;
+    margin-bottom: 1rem;
+  }
 }
 .stat-icon-circle.green {
   background: var(--gym-green-light);
@@ -104,19 +117,19 @@ body {
   color: #f59e0b;
 }
 .stat-label {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-secondary);
-  font-weight: 500;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.35rem;
 }
 .stat-value {
-  font-size: 32px;
+  font-size: clamp(22px, 5vw, 32px);
   font-weight: 800;
   color: var(--text-primary);
-  line-height: 1;
-  margin-bottom: 0.5rem;
+  line-height: 1.1;
+  margin-bottom: 0.35rem;
 }
 .stat-subtitle {
   font-size: 12px;
@@ -183,8 +196,12 @@ body {
 }
 .plan-stats {
   display: flex;
-  gap: 2rem;
+  gap: 1rem;
+  flex-wrap: wrap;
   margin: 1.5rem 0;
+}
+@media (min-width: 400px) {
+  .plan-stats { gap: 2rem; }
 }
 .plan-stat-item {
   text-align: center;
@@ -203,6 +220,7 @@ body {
 .coaching-buttons {
   display: flex;
   gap: 0.75rem;
+  flex-wrap: wrap;
   margin-top: 1.5rem;
 }
 .btn-green {
@@ -456,25 +474,25 @@ body {
 }
 </style>
 
-<div class="container-fluid px-4 py-4">
+<div class="container-fluid px-2 px-sm-4 py-3 py-sm-4">
   <!-- Welcome Header -->
-  <div class="welcome-header d-flex justify-content-between align-items-start mb-4">
-    <div>
+  <div class="welcome-header d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
+    <div class="min-w-0">
       <h1 class="welcome-title">Welcome back, <?= htmlspecialchars($displayName, ENT_QUOTES, 'UTF-8') ?>!</h1>
       <p class="welcome-subtitle">
         Member since May 2026 • Code: 
         <strong style="color: var(--gym-green);"><?= $gymMember ? htmlspecialchars($gymMember['membership_code']) : 'GYM-B137FBAB' ?></strong>
       </p>
     </div>
-    <span class="member-badge">
+    <span class="member-badge flex-shrink-0">
       <i class="bi bi-check-circle-fill"></i>
       Active
     </span>
   </div>
 
   <!-- Stats Row -->
-  <div class="row g-4 mb-4">
-    <div class="col-md-4">
+  <div class="row g-2 g-sm-3 g-md-4 mb-3 mb-md-4">
+    <div class="col-12 col-sm-4">
       <div class="stat-card-modern">
         <div class="stat-icon-circle green">
           <i class="bi bi-activity"></i>
@@ -487,7 +505,7 @@ body {
         </div>
       </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-12 col-sm-4">
       <div class="stat-card-modern">
         <div class="stat-icon-circle blue">
           <i class="bi bi-calendar-check"></i>
@@ -500,7 +518,7 @@ body {
         </div>
       </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-12 col-sm-4">
       <div class="stat-card-modern">
         <div class="stat-icon-circle yellow">
           <i class="bi bi-trophy"></i>

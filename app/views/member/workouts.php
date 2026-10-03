@@ -160,7 +160,16 @@ body {
 <?php endif; ?>
 <?php if (!empty($success)): ?>
     <div class="alert alert-success" style="border-radius: 12px;"><i class="bi bi-check-circle me-1"></i><?= htmlspecialchars($success) ?></div>
+    <script>
+    // Prompt weekly weight log after a manual workout is saved
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof window.showWeightLogPromptIfNeeded === 'function') {
+            window.showWeightLogPromptIfNeeded();
+        }
+    });
+    </script>
 <?php endif; ?>
+
 
 <!-- Statistics Cards -->
 <div class="row g-4 mb-4">

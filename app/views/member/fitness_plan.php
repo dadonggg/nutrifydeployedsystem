@@ -2252,10 +2252,15 @@ async function saveSession() {
         
         if (data.success) {
             btn.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i>Saved!';
+            // Prompt weekly weight log (once per calendar week)
+            if (typeof window.showWeightLogPromptIfNeeded === 'function') {
+                window.showWeightLogPromptIfNeeded();
+            }
             setTimeout(() => {
                 closeSession();
                 location.reload(); // Refresh to show updated logs
             }, 1500);
+
         } else {
             alert('Save failed: ' + data.error);
             btn.disabled = false;

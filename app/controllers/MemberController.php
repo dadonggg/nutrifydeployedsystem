@@ -61,7 +61,14 @@ final class MemberController extends Controller
         
         // Goal stats
         $goalStats = $goalModel->getMemberGoalStats((int)$member['id']);
-        $activeGoals = $goalModel->findByMemberId((int)$member['id'], 'active');
+        $rawActiveGoals = $goalModel->findByMemberId((int)$member['id'], 'active');
+        $activeGoals = [];
+        foreach ($rawActiveGoals as $goal) {
+            $progress = $goalModel->getGoalProgress((int)$goal['id']);
+            if (!empty($progress)) {
+                $activeGoals[] = $progress;
+            }
+        }
         
         // Trainer session stats
         $trainerStats = $trainerModel->getMemberSessionStats((int)$member['id']);
@@ -162,6 +169,9 @@ final class MemberController extends Controller
             $promotionInterestMap = $piModel->getMemberResponses((int)$member['id'], $promoIds);
         }
 
+        // ── Progress sidebar data ─────────────────────────────────────────────
+        $progressData = $this->getProgressData((int)$user['id'], (int)$member['id']);
+
         $this->view('member/dashboard', [
             'user' => $user,
             'member' => $member,
@@ -182,7 +192,101 @@ final class MemberController extends Controller
             'activePromotions'     => $activePromotions,
             'campaignInterestMap'  => $campaignInterestMap,
             'promotionInterestMap' => $promotionInterestMap,
+            'progressData'         => $progressData,
         ]);
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // PROGRESS FEATURE — PRIVATE HELPER
+    // ══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * Build progress sidebar data: weight history, goal, consistency score.
+     */
+    private function getProgressData(int $userId, int $memberId): array
+    {
+        $pdo = \App\Core\Database::pdo();
+
+        // ── Weight history (all logs for graph) ───────────────────────────────
+        $weightHistory = [];
+        try {
+            $stmt = $pdo->prepare(
+                'SELECT weight_kg, date_logged, goal_type
+                 FROM member_weight_logs
+                 WHERE user_id = ?
+                 ORDER BY date_logged ASC'
+            );
+            $stmt->execute([$userId]);
+            $weightHistory = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            $weightHistory = [];
+        }
+
+
+        // ── Latest entry & first entry ────────────────────────────────────────
+        $latestWeight = !empty($weightHistory) ? end($weightHistory) : null;
+        $firstWeight  = !empty($weightHistory) ? reset($weightHistory) : null;
+
+        // ── Net change ────────────────────────────────────────────────────────
+        $netChange = null;
+        $netChangeLabel = null;
+        if ($latestWeight && $firstWeight && $latestWeight['date_logged'] !== $firstWeight['date_logged']) {
+            $netChange = round((float)$latestWeight['weight_kg'] - (float)$firstWeight['weight_kg'], 1);
+            $sign      = $netChange >= 0 ? '+' : '';
+            $firstDate = date('M j', strtotime($firstWeight['date_logged']));
+            $netChangeLabel = "{$sign}{$netChange} kg since {$firstDate}";
+        }
+
+        // ── Current fitness goal from gym_members ─────────────────────────────
+        $fitnessGoal = null;
+        try {
+            $stmt2 = $pdo->prepare('SELECT fitness_goal FROM gym_members WHERE user_id = ? LIMIT 1');
+            $stmt2->execute([$userId]);
+            $gmRow = $stmt2->fetch(\PDO::FETCH_ASSOC);
+            $fitnessGoal = $gmRow['fitness_goal'] ?? null;
+        } catch (\Exception $e) {
+            // Column may not exist yet (migration not run)
+        }
+
+        // ── Consistency score (Sc = Σ B + si·w) ──────────────────────────────
+        $consistencyScore = 0;
+        try {
+            $stmt3 = $pdo->prepare(
+                "SELECT DISTINCT DATE(session_date) as d
+                 FROM workout_sessions
+                 WHERE member_id = ? AND status = 'completed'
+                 ORDER BY d ASC"
+            );
+            $stmt3->execute([$memberId]);
+            $sessionDates = $stmt3->fetchAll(\PDO::FETCH_COLUMN);
+
+            $B = 10; // Base points per log
+            $w = 2;  // Streak bonus weight
+            $streak = 0;
+            $prevDate = null;
+            foreach ($sessionDates as $d) {
+                if ($prevDate !== null) {
+                    $diff = (int)((strtotime($d) - strtotime($prevDate)) / 86400);
+                    $streak = ($diff === 1) ? $streak + 1 : 0;
+                } else {
+                    $streak = 1;
+                }
+                $consistencyScore += $B + ($streak * $w);
+                $prevDate = $d;
+            }
+        } catch (\Exception $e) {
+            $consistencyScore = 0;
+        }
+
+        return [
+            'weightHistory'   => $weightHistory,
+            'latestWeight'    => $latestWeight,
+            'firstWeight'     => $firstWeight,
+            'netChange'       => $netChange,
+            'netChangeLabel'  => $netChangeLabel,
+            'fitnessGoal'     => $fitnessGoal,
+            'consistencyScore'=> $consistencyScore,
+        ];
     }
 
     /** AJAX — Save campaign interest response */
@@ -562,6 +666,9 @@ final class MemberController extends Controller
             $goalsWithProgress[] = $progress;
         }
 
+        // Get progress data
+        $progressData = $this->getProgressData((int)$user['id'], (int)$member['id']);
+
         $this->view('member/goals', [
             'user' => $user,
             'member' => $member,
@@ -569,8 +676,10 @@ final class MemberController extends Controller
             'completedGoals' => $completedGoals,
             'stats' => $stats,
             'error' => $error,
-            'success' => $success
+            'success' => $success,
+            'progressData' => $progressData,
         ]);
+
     }
 
     /** Trainer Booking & Scheduling */
@@ -974,5 +1083,349 @@ final class MemberController extends Controller
         }
         
         return $gymOwnerId;
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // PROGRESS SIDEBAR — AJAX ENDPOINTS
+    // ══════════════════════════════════════════════════════════════════════════
+
+    /**
+     * GET: index.php?r=member/progressData
+     * Returns full weight history + consistency score as JSON.
+     */
+    public function progressDataAction(): void
+    {
+        header('Content-Type: application/json');
+        if (!isset($_SESSION['user_id'])) {
+            echo json_encode(['success' => false, 'error' => 'Not authenticated']);
+            return;
+        }
+        $data   = $this->requireMember();
+        $result = $this->getProgressData((int)$data['user']['id'], (int)$data['member']['id']);
+        echo json_encode(['success' => true, 'data' => $result]);
+    }
+
+    /**
+     * GET: index.php?r=member/progress
+     * Renders the dedicated Weight Progress & Analytics page.
+     */
+    public function progressAction(): void
+    {
+        $data   = $this->requireMember();
+        $user   = $data['user'];
+        $member = $data['member'];
+
+        $goalModel = new MemberGoal();
+        $goalStats = $goalModel->getMemberGoalStats((int)$member['id']);
+        $activeGoals = $goalModel->findByMemberId((int)$member['id'], 'active');
+        $progressData = $this->getProgressData((int)$user['id'], (int)$member['id']);
+
+        $consistencyScore = 0;
+        $currentStreak = 0;
+        $totalLoggedDays = 0;
+
+        try {
+            $progressModel = new \App\Models\FitnessProgressTracking();
+            $curProg = $progressModel->getCurrentProgressByMemberId((int)$member['id'], 0, (int)$user['id']);
+            $consistencyScore = $curProg['consistency_score'] ?? 0;
+            $currentStreak = $curProg['current_streak'] ?? 0;
+            $totalLoggedDays = $curProg['total_logged_days'] ?? 0;
+        } catch (\Throwable $e) {
+            // Ignore error gracefully
+        }
+
+        // Automatically notify trainer if member is off-track
+        $this->checkAndAutoSendToTrainerIfOffTrack((int)$user['id'], (int)$member['id']);
+
+        $this->view('member/progress', [
+            'user'             => $user,
+            'member'           => $member,
+            'goalStats'        => $goalStats,
+            'activeGoals'      => $activeGoals,
+            'progressData'     => $progressData,
+            'consistencyScore' => $consistencyScore,
+            'currentStreak'    => $currentStreak,
+            'totalLoggedDays'  => $totalLoggedDays,
+        ]);
+    }
+
+    /**
+     * POST: index.php?r=member/saveWeight
+     * Upserts the weight entry for the current week.
+     * Body: { weight_kg: float, goal_type?: string }
+     */
+    public function saveWeightAction(): void
+    {
+        header('Content-Type: application/json');
+        if (!isset($_SESSION['user_id'])) {
+            echo json_encode(['success' => false, 'error' => 'Not authenticated']);
+            return;
+        }
+
+        $data   = $this->requireMember();
+        $user   = $data['user'];
+        $member = $data['member'];
+
+        $input      = json_decode(file_get_contents('php://input'), true) ?? [];
+        $weightKg   = (float)($input['weight_kg'] ?? 0);
+        $goalType   = in_array($input['goal_type'] ?? '', ['bulking','cutting','maintaining'], true)
+                      ? $input['goal_type'] : null;
+        $dateLogged = (!empty($input['date_logged']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $input['date_logged']))
+                      ? $input['date_logged']
+                      : date('Y-m-d');
+
+        if ($weightKg <= 0 || $weightKg > 500) {
+            echo json_encode(['success' => false, 'error' => 'Invalid weight value.']);
+            return;
+        }
+
+        try {
+            $pdo = \App\Core\Database::pdo();
+
+            // Check if an entry already exists for this exact date
+            $stmt = $pdo->prepare(
+                'SELECT id FROM member_weight_logs
+                 WHERE user_id = ?
+                   AND date_logged = ?
+                 LIMIT 1'
+            );
+            $stmt->execute([(int)$user['id'], $dateLogged]);
+            $existing = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            if ($existing) {
+                // Update existing entry for that date
+                $upd = $pdo->prepare(
+                    'UPDATE member_weight_logs
+                     SET weight_kg = ?, goal_type = ?
+                     WHERE id = ?'
+                );
+                $upd->execute([$weightKg, $goalType, (int)$existing['id']]);
+                $message = 'Weight updated for ' . $dateLogged . '.';
+            } else {
+                // Insert new entry
+                $ins = $pdo->prepare(
+                    'INSERT INTO member_weight_logs (user_id, member_id, weight_kg, date_logged, goal_type)
+                     VALUES (?, ?, ?, ?, ?)'
+                );
+                $ins->execute([(int)$user['id'], (int)$member['id'], $weightKg, $dateLogged, $goalType]);
+                $message = 'Weight logged successfully for ' . $dateLogged . '.';
+            }
+
+            // Also keep gym_members.fitness_goal in sync if provided
+            if ($goalType) {
+                try {
+                    $pdo->prepare('UPDATE gym_members SET fitness_goal = ? WHERE user_id = ?')
+                        ->execute([$goalType, (int)$user['id']]);
+                } catch (\Exception $e) { /* Column may not exist yet */ }
+            }
+
+            // Check if client is experiencing off-track warning and automatically notify assigned trainer
+            $this->checkAndAutoSendToTrainerIfOffTrack((int)$user['id'], (int)$member['id']);
+
+            echo json_encode([
+                'success' => true,
+                'message' => $message,
+                'data'    => $this->getProgressData((int)$user['id'], (int)$member['id']),
+            ]);
+        } catch (\Exception $e) {
+            error_log('saveWeight error: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Failed to save weight: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * POST: index.php?r=member/saveGoal
+     * Updates the member's fitness goal.
+     * Body: { goal_type: 'bulking'|'cutting'|'maintaining' }
+     */
+    public function saveGoalAction(): void
+    {
+        header('Content-Type: application/json');
+        if (!isset($_SESSION['user_id'])) {
+            echo json_encode(['success' => false, 'error' => 'Not authenticated']);
+            return;
+        }
+
+        $data  = $this->requireMember();
+        $user  = $data['user'];
+        $member = $data['member'];
+        $input = json_decode(file_get_contents('php://input'), true) ?? [];
+
+        $goalType = $input['goal_type'] ?? '';
+        if (!in_array($goalType, ['bulking', 'cutting', 'maintaining'], true)) {
+            echo json_encode(['success' => false, 'error' => 'Invalid goal type.']);
+            return;
+        }
+
+        try {
+            $pdo = \App\Core\Database::pdo();
+            $pdo->prepare('UPDATE gym_members SET fitness_goal = ? WHERE user_id = ?')
+                ->execute([$goalType, (int)$user['id']]);
+
+            // Also update the latest weight log's goal_type to keep them in sync
+            $pdo->prepare(
+                'UPDATE member_weight_logs SET goal_type = ?
+                 WHERE user_id = ?
+                 ORDER BY date_logged DESC LIMIT 1'
+            )->execute([$goalType, (int)$user['id']]);
+
+            // ── Create or update corresponding active goal in member_goals ──
+            $stmtActive = $pdo->prepare(
+                'SELECT id FROM member_goals 
+                 WHERE member_id = ? AND title LIKE "Fitness Goal:%" AND status = "active"
+                 LIMIT 1'
+            );
+            $stmtActive->execute([(int)$member['id']]);
+            $existingActiveGoal = $stmtActive->fetch(\PDO::FETCH_ASSOC);
+
+            $mappedType = 'other';
+            $mappedTitle = 'Fitness Goal: Maintaining';
+            if ($goalType === 'bulking') {
+                $mappedType = 'weight_gain';
+                $mappedTitle = 'Fitness Goal: Bulking';
+            } elseif ($goalType === 'cutting') {
+                $mappedType = 'weight_loss';
+                $mappedTitle = 'Fitness Goal: Cutting';
+            }
+
+            if ($existingActiveGoal) {
+                // Update existing active goal
+                $updGoal = $pdo->prepare(
+                    'UPDATE member_goals 
+                     SET goal_type = ?, title = ?, updated_at = CURRENT_TIMESTAMP
+                     WHERE id = ?'
+                );
+                $updGoal->execute([$mappedType, $mappedTitle, (int)$existingActiveGoal['id']]);
+            } else {
+                // Create new active goal
+                $insGoal = $pdo->prepare(
+                    'INSERT INTO member_goals (member_id, goal_type, title, description, status)
+                     VALUES (?, ?, ?, ?, "active")'
+                );
+                $insGoal->execute([
+                    (int)$member['id'],
+                    $mappedType,
+                    $mappedTitle,
+                    'Automatically tracked progress goal based on fitness goal selection.'
+                ]);
+            }
+
+            // Check if client is experiencing off-track warning and automatically notify assigned trainer
+            $this->checkAndAutoSendToTrainerIfOffTrack((int)$user['id'], (int)$member['id']);
+
+            echo json_encode(['success' => true, 'goal_type' => $goalType]);
+        } catch (\Exception $e) {
+            error_log('saveGoal error: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Failed to save goal.']);
+        }
+    }
+
+    /**
+     * Automatically send progress snapshot and alert trainer if client is off-track
+     */
+    private function checkAndAutoSendToTrainerIfOffTrack(int $userId, int $memberId): void
+    {
+        try {
+            $pdo = \App\Core\Database::pdo();
+            
+            // 1. Get member details & assigned trainer
+            $stmt = $pdo->prepare('SELECT gm.*, u.fullname FROM gym_members gm JOIN users u ON u.id = gm.user_id WHERE gm.id = ? LIMIT 1');
+            $stmt->execute([$memberId]);
+            $member = $stmt->fetch(\PDO::FETCH_ASSOC);
+            if (!$member) return;
+
+            // Find assigned trainer ID
+            $trainerEmployeeId = (int)($member['assigned_trainer_id'] ?? 0);
+            $serviceRequestId = 0;
+
+            // Check if there is an active fitness service request
+            $stmtReq = $pdo->prepare(
+                'SELECT id, assigned_trainer_id FROM fitness_service_requests 
+                 WHERE member_id = ? AND status IN ("assigned", "in_progress", "active") 
+                 ORDER BY id DESC LIMIT 1'
+            );
+            $stmtReq->execute([$memberId]);
+            $req = $stmtReq->fetch(\PDO::FETCH_ASSOC);
+            if ($req) {
+                $serviceRequestId = (int)$req['id'];
+                if ($trainerEmployeeId === 0 && !empty($req['assigned_trainer_id'])) {
+                    $trainerEmployeeId = (int)$req['assigned_trainer_id'];
+                }
+            }
+
+            if ($trainerEmployeeId === 0) return; // No trainer assigned
+
+            // 2. Evaluate if client is currently off-track
+            $progressData = $this->getProgressData($userId, $memberId);
+            $wHistory = $progressData['weightHistory'] ?? [];
+            $firstW = $progressData['firstWeight'] ?? null;
+            $latestW = $progressData['latestWeight'] ?? null;
+            $netChange = $progressData['netChange'] ?? null;
+            $fGoal = $progressData['fitnessGoal'] ?? null;
+
+            if (count($wHistory) < 2 || $netChange === null || empty($fGoal)) {
+                return;
+            }
+
+            $isOffTrack = false;
+            $alertDesc = '';
+
+            if ($fGoal === 'cutting' && $netChange > 0.1) {
+                $isOffTrack = true;
+                $alertDesc = "Active Goal is Cutting (Fat Loss), but weight has increased by +{$netChange} kg ({$firstW['weight_kg']} kg → {$latestW['weight_kg']} kg)";
+            } elseif ($fGoal === 'bulking' && $netChange < -0.1) {
+                $isOffTrack = true;
+                $alertDesc = "Active Goal is Bulking (Mass Gain), but weight has decreased by {$netChange} kg ({$firstW['weight_kg']} kg → {$latestW['weight_kg']} kg)";
+            } elseif ($fGoal === 'maintaining' && abs($netChange) > 1.0) {
+                $isOffTrack = true;
+                $alertDesc = "Active Goal is Maintaining, but weight drifted by " . ($netChange > 0 ? "+{$netChange}" : "{$netChange}") . " kg";
+            }
+
+            if (!$isOffTrack) return;
+
+            // 3. Automatically record snapshot & mark sent_to_trainer = 1
+            $progressModel = new \App\Models\FitnessProgressTracking();
+            $progressId = $progressModel->calculateAndSave($memberId, $serviceRequestId);
+            if ($progressId > 0) {
+                $progressModel->sendToTrainer($progressId);
+            } else {
+                // If calculateAndSave returned existing or 0, ensure latest record is marked sent
+                $pdo->prepare(
+                    'UPDATE fitness_progress_tracking 
+                     SET sent_to_trainer = 1, sent_at = NOW() 
+                     WHERE member_id = ? 
+                     ORDER BY id DESC LIMIT 1'
+                )->execute([$memberId]);
+            }
+
+            // 4. Notify Trainer (with debounce: check if notification already sent in last 12 hours)
+            $empModel = new \App\Models\Employee();
+            $trainerEmp = $empModel->findById($trainerEmployeeId);
+            if ($trainerEmp && !empty($trainerEmp['user_id'])) {
+                $trainerUserId = (int)$trainerEmp['user_id'];
+                $clientName = $member['fullname'] ?? 'Client';
+
+                $stmtNotifCheck = $pdo->prepare(
+                    'SELECT id FROM notifications 
+                     WHERE user_id = ? AND title LIKE "⚠️ Goal Alert: %" AND created_at >= DATE_SUB(NOW(), INTERVAL 12 HOUR)
+                     LIMIT 1'
+                );
+                $stmtNotifCheck->execute([$trainerUserId]);
+                $alreadyNotified = $stmtNotifCheck->fetch(\PDO::FETCH_ASSOC);
+
+                if (!$alreadyNotified) {
+                    $notifModel = new \App\Models\Notification();
+                    $notifModel->create(
+                        $trainerUserId,
+                        "⚠️ Goal Alert: {$clientName} is Off Track",
+                        "{$clientName} is experiencing goal misalignment: {$alertDesc}. Please review their progress and provide feedback on what to adjust.",
+                        'warning',
+                        'trainer/progress'
+                    );
+                }
+            }
+        } catch (\Throwable $e) {
+            error_log('checkAndAutoSendToTrainerIfOffTrack error: ' . $e->getMessage());
+        }
     }
 }

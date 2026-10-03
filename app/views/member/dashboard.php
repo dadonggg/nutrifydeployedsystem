@@ -53,13 +53,13 @@ require __DIR__ . '/../partials/header.php';
     cursor: pointer;
     background: none;
     border: none;
-    color: rgba(255,255,255,0.7);
+    color: #64748b;
     font-size: 1rem;
     padding: 2px 6px;
     border-radius: 4px;
     transition: color 0.15s;
 }
-.coaching-collapse-toggle:hover { color: #fff; }
+.coaching-collapse-toggle:hover { color: #1e293b; }
 .coaching-card-body {
     transition: max-height 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease;
     overflow: hidden;
@@ -260,14 +260,14 @@ $membershipStatusColor = $isExpired ? 'danger' : ($daysUntilExpiry <= 7 ? 'warni
         <?php endif; ?>
 
         <!-- My Personal Trainer & Plans -->
-        <div id="coachingCard" class="card mb-4 border-0 shadow-sm overflow-hidden" style="background: linear-gradient(135deg, #1e293b, #0f172a); color: #f1f5f9;">
-            <div class="card-header border-0 d-flex justify-content-between align-items-center" style="background: rgba(34, 197, 94, 0.1); border-bottom: 1px solid rgba(34, 197, 94, 0.15)!important;">
-                <h5 class="card-title mb-0 text-white font-weight-bold" style="font-size: 1.1rem;">
-                    <i class="bi bi-person-arms-up me-2 text-success"></i>Personal Coaching & Plans
+        <div id="coachingCard" class="card mb-4 border-0 shadow-sm overflow-hidden" style="border-radius: 14px; border: 1px solid #e2e8f0 !important;">
+            <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0 fw-bold text-dark" style="font-size: 1.05rem;">
+                    <i class="bi bi-person-arms-up me-2 text-success"></i>Personal Coaching &amp; Plans
                 </h5>
                 <div class="d-flex align-items-center gap-2">
                     <?php if ($activeFitnessRequest): ?>
-                    <span class="badge bg-<?= $activeFitnessRequest['status'] === 'assigned' ? 'success' : 'warning' ?>">
+                    <span class="badge bg-<?= $activeFitnessRequest['status'] === 'assigned' ? 'success' : 'warning' ?>-subtle text-<?= $activeFitnessRequest['status'] === 'assigned' ? 'success' : 'warning-emphasis' ?> border border-<?= $activeFitnessRequest['status'] === 'assigned' ? 'success' : 'warning' ?>-subtle px-2 py-1 rounded-pill fw-semibold">
                         <?= ucfirst($activeFitnessRequest['status']) ?>
                     </span>
                     <?php endif; ?>
@@ -276,96 +276,98 @@ $membershipStatusColor = $isExpired ? 'danger' : ($daysUntilExpiry <= 7 ? 'warni
                     </button>
                 </div>
             </div>
-            <div class="card-body coaching-card-body" id="coachingCardBody">
+            <div class="card-body p-4 coaching-card-body" id="coachingCardBody">
                 <?php if (!$activeFitnessRequest): ?>
                     <!-- No Request Yet -->
                     <div class="text-center py-4">
                         <div class="mb-3">
-                            <i class="bi bi-heart-pulse text-success fs-1"></i>
+                            <div class="rounded-circle bg-success-subtle text-success p-3 d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                <i class="bi bi-heart-pulse text-success fs-2"></i>
+                            </div>
                         </div>
-                        <h5 class="text-white">Unlock Your Fitness Potential</h5>
-                        <p class="text-muted small mx-auto" style="max-width: 480px;">
+                        <h5 class="fw-bold text-dark mb-2">Unlock Your Fitness Potential</h5>
+                        <p class="text-muted small mx-auto mb-3" style="max-width: 480px;">
                             Get a fully customized workout and nutrition plan created by our expert fitness coaches. 
                             Track your consistency and get direct professional feedback.
                         </p>
-                        <a href="index.php?r=fitness/request" class="btn btn-success btn-sm mt-2 px-4" style="border-radius: 20px; font-weight: 600;">
-                            Request Training Now
+                        <a href="index.php?r=fitness/request" class="btn btn-success btn-sm px-4 fw-semibold shadow-sm" style="border-radius: 20px;">
+                            <i class="bi bi-plus-circle me-1"></i> Request Training Now
                         </a>
                     </div>
                 <?php elseif ($activeFitnessRequest['status'] === 'pending'): ?>
                     <!-- Request Pending -->
-                    <div class="d-flex align-items-center p-3 rounded" style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.15);">
-                        <div class="bg-warning bg-opacity-15 p-3 rounded-circle me-3">
-                            <i class="bi bi-hourglass-split text-warning fs-3"></i>
+                    <div class="d-flex align-items-center p-3 rounded-3" style="background: #fffbeb; border: 1px solid #fef3c7;">
+                        <div class="bg-warning bg-opacity-25 p-3 rounded-circle me-3 text-warning-emphasis">
+                            <i class="bi bi-hourglass-split fs-3"></i>
                         </div>
                         <div>
-                            <h6 class="mb-1 text-white">Coaching Request Submitted</h6>
-                            <p class="text-muted small mb-0">
+                            <h6 class="mb-1 fw-bold text-dark">Coaching Request Submitted</h6>
+                            <p class="text-secondary small mb-0">
                                 Your training request is received and currently awaiting trainer assignment by our Administrative Officer.
                             </p>
                         </div>
                     </div>
                 <?php elseif ($activeFitnessRequest['status'] === 'assigned'): ?>
                     <!-- Trainer Assigned -->
-                    <div class="row g-4">
-                        <div class="col-md-5 border-end border-secondary border-opacity-20">
+                    <div class="row g-4 align-items-center">
+                        <div class="col-md-5 border-end border-light-subtle pe-md-4">
                             <div class="d-flex align-items-center mb-3">
-                                <div class="bg-success bg-opacity-15 p-3 rounded-circle me-3">
-                                    <i class="bi bi-person-badge text-success fs-4"></i>
+                                <div class="rounded-circle bg-success-subtle text-success d-flex align-items-center justify-content-center fw-bold fs-4 me-3 flex-shrink-0" style="width: 52px; height: 52px; border: 2px solid #bbf7d0;">
+                                    <?= strtoupper(substr($activeFitnessRequest['trainer_name'] ?? 'C', 0, 1)) ?>
                                 </div>
-                                <div>
-                                    <small class="text-muted d-block text-uppercase" style="font-size: 0.65rem; letter-spacing: 0.08em;">Assigned Coach</small>
-                                    <h6 class="mb-0 text-white"><?= htmlspecialchars($activeFitnessRequest['trainer_name'] ?? 'Your Fitness Coach') ?></h6>
+                                <div class="overflow-hidden">
+                                    <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.68rem; letter-spacing: 0.05em;">Assigned Coach</small>
+                                    <h6 class="mb-0 fw-bold text-dark text-truncate"><?= htmlspecialchars($activeFitnessRequest['trainer_name'] ?? 'Your Fitness Coach') ?></h6>
                                     <?php if (!empty($activeFitnessRequest['trainer_specialization'])): ?>
-                                    <small class="text-muted"><?= htmlspecialchars($activeFitnessRequest['trainer_specialization']) ?></small>
+                                    <small class="text-muted text-truncate d-block"><?= htmlspecialchars($activeFitnessRequest['trainer_specialization']) ?></small>
                                     <?php endif; ?>
                                 </div>
                             </div>
                             <div class="d-grid gap-2">
-                                <a href="index.php?r=fitness/status" class="btn btn-outline-light btn-sm text-start">
-                                    <i class="bi bi-clipboard-check me-2"></i>My Training Overview
+                                <a href="index.php?r=fitness/status" class="btn btn-outline-secondary btn-sm text-start fw-medium">
+                                    <i class="bi bi-clipboard-check me-2 text-success"></i>My Training Overview
                                 </a>
-                                <a href="index.php?r=fitness/progress&request_id=<?= $activeFitnessRequest['id'] ?>" class="btn btn-outline-success btn-sm text-start">
+                                <a href="index.php?r=fitness/progress&request_id=<?= $activeFitnessRequest['id'] ?>" class="btn btn-outline-success btn-sm text-start fw-medium">
                                     <i class="bi bi-graph-up me-2"></i>Track Daily Progress
                                 </a>
                             </div>
                         </div>
                         
-                        <div class="col-md-7">
+                        <div class="col-md-7 ps-md-4">
                             <?php if (!$activePlan || $activePlan['status'] === 'draft'): ?>
                                 <!-- Plan Draft or Empty -->
                                 <div class="text-center py-3">
                                     <i class="bi bi-journal-text text-muted fs-3 mb-2 d-block"></i>
-                                    <h6 class="text-white">Plan in Preparation</h6>
+                                    <h6 class="fw-bold text-dark">Plan in Preparation</h6>
                                     <p class="text-muted small mb-0">
                                         Your coach is currently tailoring your workout and nutrition schedules. Check back soon!
                                     </p>
                                 </div>
                             <?php else: ?>
                                 <!-- Active Plan Details -->
-                                <h6 class="text-white mb-3" style="font-size: 0.95rem;"><i class="bi bi-card-checklist text-success me-2"></i>Personalized Fitness & Diet Plan</h6>
+                                <h6 class="fw-bold text-dark mb-3" style="font-size: 0.95rem;"><i class="bi bi-card-checklist text-success me-2"></i>Personalized Fitness &amp; Diet Plan</h6>
                                 
                                 <div class="row g-2 mb-3">
                                     <div class="col-6">
-                                        <div class="p-2 rounded bg-secondary bg-opacity-10 text-center">
-                                            <small class="text-muted d-block" style="font-size: 0.7rem;">Target Calories</small>
-                                            <strong class="text-success"><?= $activePlan['target_calories'] ? $activePlan['target_calories'] . ' kcal' : '—' ?></strong>
+                                        <div class="p-3 rounded-3 text-center" style="background: #f8fafc; border: 1px solid #e2e8f0;">
+                                            <small class="text-muted d-block fw-semibold mb-1" style="font-size: 0.72rem; text-transform: uppercase;">Target Calories</small>
+                                            <strong class="text-success fs-5"><?= $activePlan['target_calories'] ? $activePlan['target_calories'] . ' kcal' : '—' ?></strong>
                                         </div>
                                     </div>
                                     <div class="col-6">
-                                        <div class="p-2 rounded bg-secondary bg-opacity-10 text-center">
-                                            <small class="text-muted d-block" style="font-size: 0.7rem;">Weekly Sessions</small>
-                                            <strong class="text-success"><?= $activePlan['recommended_sessions_per_week'] ?? '—' ?> sessions</strong>
+                                        <div class="p-3 rounded-3 text-center" style="background: #f8fafc; border: 1px solid #e2e8f0;">
+                                            <small class="text-muted d-block fw-semibold mb-1" style="font-size: 0.72rem; text-transform: uppercase;">Weekly Sessions</small>
+                                            <strong class="text-success fs-5"><?= $activePlan['recommended_sessions_per_week'] ?? '—' ?> sessions</strong>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div class="d-flex gap-2">
-                                    <a href="index.php?r=fitness/plan&request_id=<?= $activeFitnessRequest['id'] ?>" class="btn btn-success btn-sm flex-grow-1">
-                                        <i class="bi bi-file-text me-1"></i>View Workouts
+                                    <a href="index.php?r=fitness/plan&request_id=<?= $activeFitnessRequest['id'] ?>" class="btn btn-success btn-sm flex-grow-1 fw-semibold shadow-sm">
+                                        <i class="bi bi-file-text me-1"></i> View Workouts
                                     </a>
-                                    <a href="index.php?r=fitness/plan&request_id=<?= $activeFitnessRequest['id'] ?>#nutrition-section" class="btn btn-outline-info btn-sm flex-grow-1">
-                                        <i class="bi bi-egg-fried me-1"></i>View Diet
+                                    <a href="index.php?r=fitness/plan&request_id=<?= $activeFitnessRequest['id'] ?>#nutrition-section" class="btn btn-outline-primary btn-sm flex-grow-1 fw-semibold">
+                                        <i class="bi bi-egg-fried me-1"></i> View Diet
                                     </a>
                                 </div>
                             <?php endif; ?>
@@ -377,41 +379,41 @@ $membershipStatusColor = $isExpired ? 'danger' : ($daysUntilExpiry <= 7 ? 'warni
 
         <!-- Active Goals -->
         <?php if (!empty($activeGoals)): ?>
-        <div class="card mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">
-                    <i class="bi bi-target me-2"></i>Active Goals
+        <div class="card mb-4 border-0 shadow-sm" style="border-radius: 14px; border: 1px solid #e2e8f0 !important;">
+            <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0 fw-bold text-dark" style="font-size: 1.05rem;">
+                    <i class="bi bi-target me-2 text-warning"></i>Active Goals
                 </h5>
-                <a href="index.php?r=member/goals" class="btn btn-sm btn-outline-primary">View All</a>
+                <a href="index.php?r=member/goals" class="btn btn-sm btn-outline-primary fw-medium px-3 rounded-pill">View All</a>
             </div>
-            <div class="card-body">
+            <div class="card-body p-4">
                 <?php foreach (array_slice($activeGoals, 0, 3) as $goalData): 
-                    $goal = $goalData['goal'];
-                    $progress = $goalData['progress_percentage'];
-                    $isOverdue = $goalData['is_overdue'];
+                    $goal = isset($goalData['goal']) && is_array($goalData['goal']) ? $goalData['goal'] : $goalData;
+                    $progress = (float)($goalData['progress_percentage'] ?? 0);
+                    $isOverdue = !empty($goalData['is_overdue']);
                 ?>
                 <div class="mb-3 <?= $isOverdue ? 'border-start border-danger border-3 ps-3' : '' ?>">
                     <div class="d-flex justify-content-between align-items-start mb-2">
                         <div>
-                            <h6 class="mb-1"><?= htmlspecialchars($goal['title']) ?></h6>
+                            <h6 class="mb-1 fw-bold text-dark"><?= htmlspecialchars((string)($goal['title'] ?? 'Goal')) ?></h6>
                             <small class="text-muted">
-                                <?= ucfirst(str_replace('_', ' ', $goal['goal_type'])) ?>
-                                <?php if ($goal['target_date']): ?>
-                                • Target: <?= date('M j, Y', strtotime($goal['target_date'])) ?>
+                                <?= ucfirst(str_replace('_', ' ', (string)($goal['goal_type'] ?? ''))) ?>
+                                <?php if (!empty($goal['target_date'])): ?>
+                                • Target: <?= date('M j, Y', strtotime((string)$goal['target_date'])) ?>
                                 <?php endif; ?>
                             </small>
                         </div>
-                        <span class="badge bg-<?= $isOverdue ? 'danger' : 'primary' ?>">
+                        <span class="badge bg-<?= $isOverdue ? 'danger' : 'primary' ?>-subtle text-<?= $isOverdue ? 'danger' : 'primary' ?> border border-<?= $isOverdue ? 'danger' : 'primary' ?>-subtle rounded-pill px-2 py-1">
                             <?= number_format($progress, 1) ?>%
                         </span>
                     </div>
-                    <div class="progress" style="height: 6px;">
+                    <div class="progress" style="height: 6px; border-radius: 4px;">
                         <div class="progress-bar bg-<?= $isOverdue ? 'danger' : 'primary' ?>" 
-                             style="width: <?= min(100, $progress) ?>%"></div>
+                             style="width: <?= min(100, (int)$progress) ?>%"></div>
                     </div>
-                    <?php if ($goal['target_value']): ?>
-                    <small class="text-muted">
-                        <?= number_format($goal['current_value'], 1) ?> / <?= number_format($goal['target_value'], 1) ?> <?= htmlspecialchars($goal['target_unit']) ?>
+                    <?php if (!empty($goal['target_value'])): ?>
+                    <small class="text-muted d-block mt-1">
+                        <?= number_format((float)($goal['current_value'] ?? 0), 1) ?> / <?= number_format((float)$goal['target_value'], 1) ?> <?= htmlspecialchars((string)($goal['target_unit'] ?? '')) ?>
                     </small>
                     <?php endif; ?>
                 </div>
@@ -422,14 +424,14 @@ $membershipStatusColor = $isExpired ? 'danger' : ($daysUntilExpiry <= 7 ? 'warni
 
         <!-- Recent Announcements -->
         <?php if (!empty($announcements)): ?>
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">
-                    <i class="bi bi-megaphone me-2"></i>Gym Announcements
+        <div class="card mb-4 border-0 shadow-sm" style="border-radius: 14px; border: 1px solid #e2e8f0 !important;">
+            <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0 fw-bold text-dark" style="font-size: 1.05rem;">
+                    <i class="bi bi-megaphone me-2 text-primary"></i>Gym Announcements
                 </h5>
-                <a href="index.php?r=member/announcements" class="btn btn-sm btn-outline-primary">View All</a>
+                <a href="index.php?r=member/announcements" class="btn btn-sm btn-outline-primary fw-medium px-3 rounded-pill">View All</a>
             </div>
-            <div class="card-body">
+            <div class="card-body p-4">
                 <?php foreach (array_slice($announcements, 0, 3) as $announcement):
                     $__pri = $announcement['priority'];
                     if ($__pri === 'urgent') { $priorityColor = 'danger'; }
@@ -445,26 +447,21 @@ $membershipStatusColor = $isExpired ? 'danger' : ($daysUntilExpiry <= 7 ? 'warni
                     elseif ($__type === 'promotion') { $typeIcon = 'bi-tag'; }
                     else { $typeIcon = 'bi-info-circle'; }
                 ?>
-                <div class="d-flex align-items-start mb-3 <?= !$announcement['is_viewed'] ? 'bg-light rounded p-2' : '' ?>">
+                <div class="d-flex align-items-start mb-3 <?= !$announcement['is_viewed'] ? 'bg-light rounded-3 p-3' : '' ?>">
                     <div class="flex-shrink-0 me-3">
-                        <div class="bg-<?= $priorityColor ?> bg-opacity-10 rounded-circle p-2">
+                        <div class="bg-<?= $priorityColor ?> bg-opacity-10 rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
                             <i class="bi <?= $typeIcon ?> text-<?= $priorityColor ?>"></i>
                         </div>
                     </div>
                     <div class="flex-grow-1">
-                        <h6 class="mb-1">
+                        <h6 class="mb-1 fw-bold text-dark">
                             <?= htmlspecialchars($announcement['title']) ?>
                             <?php if (!$announcement['is_viewed']): ?>
-                            <span class="badge bg-primary ms-2">New</span>
+                            <span class="badge bg-primary rounded-pill ms-2">New</span>
                             <?php endif; ?>
                         </h6>
-                        <p class="text-muted small mb-1">
-                            <?= htmlspecialchars(substr($announcement['content'], 0, 100)) ?>
-                            <?= strlen($announcement['content']) > 100 ? '...' : '' ?>
-                        </p>
-                        <small class="text-muted">
-                            <?= date('M j, Y', strtotime($announcement['publish_date'])) ?>
-                        </small>
+                        <p class="text-secondary small mb-1"><?= nl2br(htmlspecialchars($announcement['content'])) ?></p>
+                        <small class="text-muted"><?= date('M j, Y g:i A', strtotime($announcement['created_at'])) ?></small>
                     </div>
                 </div>
                 <?php endforeach; ?>
@@ -550,60 +547,35 @@ $membershipStatusColor = $isExpired ? 'danger' : ($daysUntilExpiry <= 7 ? 'warni
         </script>
         <?php endif; ?>
 
-        <!-- Recent Attendance -->
-        <?php if (!empty($recentAttendance)): ?>
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="bi bi-clock-history me-2"></i>Recent Visits
-                </h5>
-            </div>
-            <div class="card-body">
-                <?php foreach (array_slice($recentAttendance, 0, 5) as $visit): ?>
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <div>
-                        <div class="fw-semibold"><?= date('M j, Y', strtotime($visit['check_in'])) ?></div>
-                        <small class="text-muted"><?= date('g:i A', strtotime($visit['check_in'])) ?></small>
-                    </div>
-                    <span class="badge bg-success">Visited</span>
-                </div>
-                <?php endforeach; ?>
-                <a href="index.php?r=member/attendance" class="btn btn-sm btn-outline-primary w-100">
-                    View Full History
-                </a>
-            </div>
-        </div>
-        <?php endif; ?>
-
         <!-- Membership Status -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="bi bi-card-checklist me-2"></i>Membership Status
+        <div class="card mb-4 border-0 shadow-sm" style="border-radius: 14px; border: 1px solid #e2e8f0 !important;">
+            <div class="card-header bg-white border-bottom py-3">
+                <h5 class="card-title mb-0 fw-bold text-dark" style="font-size: 1.05rem;">
+                    <i class="bi bi-card-checklist me-2 text-success"></i>Membership Status
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="card-body p-4">
                 <div class="text-center mb-3">
                     <div class="display-6 fw-bold text-<?= $membershipStatusColor ?>">
                         <?= $isExpired ? 'EXPIRED' : 'ACTIVE' ?>
                     </div>
                     <?php if ($member['expiration_date']): ?>
-                    <div class="text-muted">
+                    <div class="text-muted small mt-1">
                         <?= $isExpired ? 'Expired on' : 'Expires on' ?>
-                        <?= date('M j, Y', strtotime($member['expiration_date'])) ?>
+                        <strong><?= date('M j, Y', strtotime($member['expiration_date'])) ?></strong>
                     </div>
                     <?php endif; ?>
                 </div>
                 
                 <?php if ($isExpired || ($daysUntilExpiry !== null && $daysUntilExpiry <= 7)): ?>
-                <div class="alert alert-<?= $isExpired ? 'danger' : 'warning' ?> py-2 mb-3">
+                <div class="alert alert-<?= $isExpired ? 'danger' : 'warning' ?> py-2 mb-3 rounded-3">
                     <i class="bi bi-exclamation-triangle me-1"></i>
                     <strong><?= $isExpired ? 'Membership Expired!' : 'Renewal Due Soon' ?></strong>
                     <br><small>Please renew your membership to continue accessing the gym.</small>
                 </div>
                 <?php endif; ?>
 
-                <a href="index.php?r=member/membership" class="btn btn-<?= $isExpired ? 'danger' : 'outline-primary' ?> w-100">
+                <a href="index.php?r=member/membership" class="btn btn-outline-success w-100 fw-semibold shadow-sm py-2">
                     <i class="bi bi-credit-card me-1"></i>
                     <?= $isExpired ? 'Renew Now' : 'Manage Membership' ?>
                 </a>
@@ -611,44 +583,54 @@ $membershipStatusColor = $isExpired ? 'danger' : ($daysUntilExpiry <= 7 ? 'warni
         </div>
 
         <!-- Quick Actions -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="bi bi-lightning-charge me-2"></i>Quick Actions
+        <div class="card mb-4 border-0 shadow-sm" style="border-radius: 14px; border: 1px solid #e2e8f0 !important;">
+            <div class="card-header bg-white border-bottom py-3">
+                <h5 class="card-title mb-0 fw-bold text-dark" style="font-size: 1.05rem;">
+                    <i class="bi bi-lightning-charge me-2 text-warning"></i>Quick Actions
                 </h5>
             </div>
-            <div class="card-body">
+            <div class="card-body p-4">
                 <div class="d-grid gap-2">
-                    <a href="index.php?r=fitness/request" class="btn btn-outline-danger d-flex align-items-center justify-content-start">
-                        <i class="bi bi-person-hearts me-3 fs-5"></i>
+                    <a href="index.php?r=fitness/request" class="btn btn-outline-danger d-flex align-items-center justify-content-start p-2 rounded-3 text-decoration-none">
+                        <div class="rounded-circle bg-danger bg-opacity-10 p-2 me-3 text-danger d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                            <i class="bi bi-person-hearts fs-5"></i>
+                        </div>
                         <div class="text-start">
                             <div class="fw-semibold">Request Training</div>
                             <small class="text-muted">Get personalized fitness coaching</small>
                         </div>
                     </a>
-                    <a href="index.php?r=member/equipment" class="btn btn-outline-success d-flex align-items-center justify-content-start">
-                        <i class="bi bi-tools me-3 fs-5"></i>
+                    <a href="index.php?r=member/equipment" class="btn btn-outline-success d-flex align-items-center justify-content-start p-2 rounded-3 text-decoration-none">
+                        <div class="rounded-circle bg-success bg-opacity-10 p-2 me-3 text-success d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                            <i class="bi bi-tools fs-5"></i>
+                        </div>
                         <div class="text-start">
                             <div class="fw-semibold">View Equipment</div>
                             <small class="text-muted">Browse available gym equipment</small>
                         </div>
                     </a>
-                    <a href="index.php?r=member/workouts" class="btn btn-outline-primary d-flex align-items-center justify-content-start">
-                        <i class="bi bi-plus-circle me-3 fs-5"></i>
+                    <a href="index.php?r=member/workouts" class="btn btn-outline-primary d-flex align-items-center justify-content-start p-2 rounded-3 text-decoration-none">
+                        <div class="rounded-circle bg-primary bg-opacity-10 p-2 me-3 text-primary d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                            <i class="bi bi-plus-circle fs-5"></i>
+                        </div>
                         <div class="text-start">
                             <div class="fw-semibold">Log Workout</div>
                             <small class="text-muted">Track your exercise session</small>
                         </div>
                     </a>
-                    <a href="index.php?r=member/goals" class="btn btn-outline-warning d-flex align-items-center justify-content-start">
-                        <i class="bi bi-bullseye me-3 fs-5"></i>
+                    <a href="index.php?r=member/goals" class="btn btn-outline-warning d-flex align-items-center justify-content-start p-2 rounded-3 text-decoration-none text-warning-emphasis">
+                        <div class="rounded-circle bg-warning bg-opacity-15 p-2 me-3 text-warning-emphasis d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                            <i class="bi bi-bullseye fs-5"></i>
+                        </div>
                         <div class="text-start">
-                            <div class="fw-semibold">Set Goal</div>
+                            <div class="fw-semibold text-warning-emphasis">Set Goal</div>
                             <small class="text-muted">Create a fitness goal</small>
                         </div>
                     </a>
-                    <a href="index.php?r=membership/verifycode" class="btn btn-outline-info d-flex align-items-center justify-content-start">
-                        <i class="bi bi-qr-code me-3 fs-5"></i>
+                    <a href="index.php?r=membership/verifycode" class="btn btn-outline-info d-flex align-items-center justify-content-start p-2 rounded-3 text-decoration-none">
+                        <div class="rounded-circle bg-info bg-opacity-10 p-2 me-3 text-info d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                            <i class="bi bi-qr-code fs-5"></i>
+                        </div>
                         <div class="text-start">
                             <div class="fw-semibold">Check In</div>
                             <small class="text-muted">Log your gym visit</small>
@@ -657,8 +639,35 @@ $membershipStatusColor = $isExpired ? 'danger' : ($daysUntilExpiry <= 7 ? 'warni
                 </div>
             </div>
         </div>
-    </div>
-</div>
+
+        <!-- Recent Attendance -->
+        <?php if (!empty($recentAttendance)): ?>
+        <div class="card mb-4 border-0 shadow-sm" style="border-radius: 14px; border: 1px solid #e2e8f0 !important;">
+            <div class="card-header bg-white border-bottom py-3">
+                <h5 class="card-title mb-0 fw-bold text-dark" style="font-size: 1.05rem;">
+                    <i class="bi bi-clock-history me-2 text-primary"></i>Recent Visits
+                </h5>
+            </div>
+            <div class="card-body p-4">
+                <?php foreach (array_slice($recentAttendance, 0, 5) as $visit): ?>
+                <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom border-light-subtle">
+                    <div>
+                        <div class="fw-semibold text-dark"><?= date('M j, Y', strtotime($visit['check_in'])) ?></div>
+                        <small class="text-muted"><?= date('g:i A', strtotime($visit['check_in'])) ?></small>
+                    </div>
+                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-1">Visited</span>
+                </div>
+                <?php endforeach; ?>
+                <a href="index.php?r=member/attendance" class="btn btn-sm btn-outline-primary w-100 fw-medium mt-2">
+                    View Full History
+                </a>
+            </div>
+        </div>
+        <?php endif; ?>
+
+    </div><!-- /.col-lg-4 -->
+</div><!-- /.row -->
+
 
 <!-- Campaign Registration Modal -->
 <div class="modal fade" id="cbRegisterModal" tabindex="-1" aria-labelledby="cbRegisterModalLabel" aria-hidden="true">
@@ -1137,3 +1146,4 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 </script>
+

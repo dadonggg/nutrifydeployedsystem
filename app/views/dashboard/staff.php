@@ -9,7 +9,7 @@ require __DIR__ . '/../partials/header.php';
     <p class="text-muted mb-0">Welcome, <?= htmlspecialchars($user['fullname'] ?? '', ENT_QUOTES, 'UTF-8') ?>. You are currently assigned as a <strong><?= ucfirst($role) ?></strong>.</p>
 </div>
 
-<div class="row g-4">
+<div class="row g-3">
     <div class="col-lg-6">
         <div class="card">
             <div class="card-body text-center py-5">

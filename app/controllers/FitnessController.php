@@ -710,7 +710,7 @@ final class FitnessController extends Controller
 
         try {
             $stmt = $pdo->query(
-                "SELECT e.id as employee_id, u.fullname, u.profile_picture_url, 
+                "SELECT e.id as employee_id, u.id as user_id, u.fullname, u.profile_picture_url, 
                         tp.bio, tp.expertise, tp.certifications,
                         ld.gym_name,
                         COALESCE(AVG(tr.rating), 0) as avg_rating,
@@ -727,6 +727,15 @@ final class FitnessController extends Controller
                  GROUP BY e.id"
             );
             $trainers = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Compute feedback response rate for each trainer
+            $analyticsModel = new \App\Models\ProgramSuccessAnalytics();
+            foreach ($trainers as &$t) {
+                $m = $analyticsModel->getTrainerFeedbackMetrics((int)$t['employee_id'], (int)($t['user_id'] ?? 0));
+                $t['feedback_response_rate'] = $m['R_fb'] ?? 0.0;
+                $t['feedback_count'] = $m['N_fb'] ?? 0;
+            }
+            unset($t);
         } catch (\Exception $e) {
             // Tables may not exist yet — show empty directory with a notice
             $_SESSION['info'] = 'Trainer directory tables not set up yet. Please run the database migration first.';
@@ -751,7 +760,7 @@ final class FitnessController extends Controller
         $pdo = \App\Core\Database::pdo();
         
         $stmt = $pdo->prepare(
-            "SELECT e.id as employee_id, u.fullname, u.profile_picture_url, u.email,
+            "SELECT e.id as employee_id, u.id as user_id, u.fullname, u.profile_picture_url, u.email,
                     COALESCE(AVG(tr.rating), 0) as avg_rating,
                     COUNT(DISTINCT tr.id) as review_count
              FROM users u
@@ -788,6 +797,15 @@ final class FitnessController extends Controller
         $stmtRev->execute([':id' => $trainerId]);
         $reviews = $stmtRev->fetchAll(\PDO::FETCH_ASSOC);
 
+        // Fetch specific trainer feedback response rate metrics
+        $feedbackMetrics = null;
+        try {
+            $analyticsModel = new \App\Models\ProgramSuccessAnalytics();
+            $feedbackMetrics = $analyticsModel->getTrainerFeedbackMetrics((int)$trainer['employee_id'], (int)($trainer['user_id'] ?? 0));
+        } catch (\Throwable $e) {
+            $feedbackMetrics = null;
+        }
+
         $success = $_SESSION['success'] ?? '';
         $error = $_SESSION['error'] ?? '';
         unset($_SESSION['success'], $_SESSION['error']);
@@ -798,6 +816,7 @@ final class FitnessController extends Controller
             'profile' => $profile,
             'schedules' => $schedules,
             'reviews' => $reviews,
+            'feedbackMetrics' => $feedbackMetrics,
             'success' => $success,
             'error' => $error
         ]);

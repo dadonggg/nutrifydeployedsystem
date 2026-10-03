@@ -11,6 +11,15 @@ if (is_file($googlePath)) {
     }
 }
 
+$secrets = [];
+$secretsPath = __DIR__ . '/secrets.php';
+if (is_file($secretsPath)) {
+    $loadedSecrets = require $secretsPath;
+    if (is_array($loadedSecrets)) {
+        $secrets = $loadedSecrets;
+    }
+}
+
 return [
     'db' => [
         'host' => 'sql104.infinityfree.com',
@@ -37,14 +46,14 @@ return [
             'username' => 'dadongalfanta9182@gmail.com',
             'password' => 'yhahfllmoxdvedia',
             'encryption' => 'tls',
-            'debug' => 2,
+            'debug' => 0,
         ],
     ],
     'usda' => [
-        'api_key' => 'VGbJn4p8tPa6b2HQ48SUYKLqj1aZjdHwOYimGqz', // Paste your free private USDA API key here!
+        'api_key' => (string)($secrets['usda_api_key'] ?? getenv('USDA_API_KEY') ?: ''),
     ],
     'gemini' => [
-        'api_key' => 'AIzaSyAb8RN6IQclQhmXTan8dKMwkJxyyAHFISoxEDfg5zo-NiZVU__Q',
+        'api_key' => (string)($secrets['gemini_api_key'] ?? getenv('GEMINI_API_KEY') ?: ''),
         'model'   => 'gemini-1.5-flash',
     ],
 ];

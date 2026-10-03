@@ -1,4 +1,5 @@
-<?php
+          
+        <?php
 declare(strict_types=1);
 $pageTitle = 'Apply for Membership';
 require __DIR__ . '/../partials/header.php';
@@ -55,23 +56,31 @@ $autoMI        = $user['middle_initial'] ?? '';
                     <!-- PayMongo Payment Link -->
                     <?php if (empty($memberApp['payment_submitted_at'])): ?>
                     <div class="mt-4">
-                        <a href="<?= htmlspecialchars($paymongoLink) ?>" target="_blank" class="btn btn-primary btn-lg mb-3">
+                        <a href="<?= htmlspecialchars($paymongoLink) ?>" target="_blank" class="btn btn-primary btn-lg mb-3 me-2">
                             <i class="bi bi-credit-card me-2"></i>Pay Now via PayMongo
                         </a>
-                        <form method="post" action="index.php?r=membership/notifypayment" class="d-inline-block ms-2">
+                        <a href="index.php?r=membership/checkpayment" class="btn btn-outline-success btn-lg mb-3 me-2">
+                            <i class="bi bi-arrow-repeat me-1"></i>Verify Payment Status
+                        </a>
+                        <form method="post" action="index.php?r=membership/notifypayment" class="d-inline-block">
                             <input type="hidden" name="id" value="<?= $memberApp['id'] ?>">
                             <button type="submit" class="btn btn-success btn-lg mb-3" onclick="return confirm('Only click this IF you have successfully completed the PayMongo payment. Proceed?')">
                                 <i class="bi bi-check-circle me-1"></i>I Have Paid
                             </button>
                         </form>
                         <p class="small text-muted">
-                            <i class="bi bi-shield-check"></i> Secure payment powered by PayMongo
+                            <i class="bi bi-shield-check"></i> Secure payment powered by PayMongo. After completing payment, click <strong>Verify Payment Status</strong>.
                         </p>
                     </div>
                     <?php else: ?>
                     <div class="mt-4 alert alert-success d-inline-block text-start">
                         <i class="bi bi-check-circle-fill me-2"></i><strong>Payment Submitted!</strong><br>
                         The Administrative Officer is verifying your payment and will generate your membership code shortly.
+                        <div class="mt-2">
+                            <a href="index.php?r=membership/checkpayment" class="btn btn-sm btn-outline-success">
+                                <i class="bi bi-arrow-repeat me-1"></i>Re-check PayMongo Online Status
+                            </a>
+                        </div>
                     </div>
                     <?php endif; ?>
                 <?php else: ?>

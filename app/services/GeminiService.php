@@ -8,10 +8,27 @@ namespace App\Services;
  */
 class GeminiService
 {
-    private const API_KEY  = 'AIzaSyBRN6IQclQhmXTan8dKMwkJxyyAHFISoxEDfg5zo-NiZVU__Q';
-    private const MODEL    = 'gemini-2.5-flash';
-    private const BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models/';
-    private const TIMEOUT  = 120;
+    private const DEFAULT_MODEL = 'gemini-1.5-flash';
+    private const BASE_URL      = 'https://generativelanguage.googleapis.com/v1beta/models/';
+    private const TIMEOUT       = 120;
+
+    private string $apiKey;
+    private string $model;
+
+    public function __construct()
+    {
+        $config = [];
+        $configFile = dirname(__DIR__) . '/config/config.php';
+        if (file_exists($configFile)) {
+            $loaded = require $configFile;
+            if (is_array($loaded)) {
+                $config = $loaded;
+            }
+        }
+
+        $this->apiKey = (string)($config['gemini']['api_key'] ?? getenv('GEMINI_API_KEY') ?: '');
+        $this->model  = (string)($config['gemini']['model'] ?? self::DEFAULT_MODEL);
+    }
 
     /**
      * Generate complete fitness plan from client profile
@@ -21,6 +38,10 @@ class GeminiService
         $startTime = microtime(true);
 
         try {
+            if (empty($this->apiKey)) {
+                throw new \Exception("Gemini API key is not configured. Please set your API key in app/config/config.php under ['gemini']['api_key'].");
+            }
+
             $prompt   = $this->buildPrompt($clientProfile);
             $response = $this->callGemini($prompt);
             $plan     = $this->parseResponse($response);
@@ -29,14 +50,14 @@ class GeminiService
                 'success'        => true,
                 'plan'           => $plan,
                 'generationTime' => (int)((microtime(true) - $startTime) * 1000),
-                'model'          => self::MODEL,
+                'model'          => $this->model,
             ];
         } catch (\Exception $e) {
             return [
                 'success'        => false,
                 'error'          => $e->getMessage(),
                 'generationTime' => (int)((microtime(true) - $startTime) * 1000),
-                'model'          => self::MODEL,
+                'model'          => $this->model,
             ];
         }
     }
@@ -50,17 +71,24 @@ class GeminiService
             ? implode(', ', $profile['fitness_goals'])
             : ($profile['fitness_goals'] ?? 'General Fitness');
 
+        $name = (string)($profile['name'] ?? 'Client');
+        $age = (string)($profile['age'] ?? '25');
+        $activityLevel = (string)($profile['activity_level'] ?? 'Moderate');
+        $medConditions = !empty($profile['medical_conditions']) ? (string)$profile['medical_conditions'] : 'None';
+        $dietPrefs = !empty($profile['dietary_preferences']) ? (string)$profile['dietary_preferences'] : 'None';
+        $sessions = (string)($profile['sessions_per_week'] ?? '3-4');
+
         return <<<PROMPT
 You are an expert certified fitness trainer AI creating a personalized weekly workout plan.
 
 CLIENT PROFILE:
-- Name: {$profile['name']}
-- Age: {$profile['age']}
+- Name: {$name}
+- Age: {$age}
 - Fitness Goals: {$goalsStr}
-- Current Activity Level: {$profile['activity_level']}
-- Medical Conditions: {$profile['medical_conditions'] ?: 'None'}
-- Dietary Preferences: {$profile['dietary_preferences'] ?: 'None'}
-- Sessions Per Week: {$profile['sessions_per_week']}
+- Current Activity Level: {$activityLevel}
+- Medical Conditions: {$medConditions}
+- Dietary Preferences: {$dietPrefs}
+- Sessions Per Week: {$sessions}
 
 Generate a complete fitness plan. You MUST respond ONLY with valid JSON — no markdown, no code fences, no explanations outside the JSON.
 
@@ -115,53 +143,66 @@ PROMPT;
      */
     private function callGemini(string $prompt): string
     {
-        $url  = self::BASE_URL . self::MODEL . ':generateContent?key=' . self::API_KEY;
-        $body = json_encode([
-            'contents' => [
-                [
-                    'parts' => [
-                        ['text' => $prompt]
+        $modelsToTry = array_unique([$this->model, 'gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro']);
+        $lastError = '';
+
+        foreach ($modelsToTry as $currentModel) {
+            $url  = self::BASE_URL . $currentModel . ':generateContent?key=' . $this->apiKey;
+            $body = json_encode([
+                'contents' => [
+                    [
+                        'parts' => [
+                            ['text' => $prompt]
+                        ]
                     ]
-                ]
-            ],
-            'generationConfig' => [
-                'temperature'     => 0.7,
-                'topP'            => 0.9,
-                'maxOutputTokens' => 8192,
-                'responseMimeType'=> 'application/json',
-            ],
-        ]);
+                ],
+                'generationConfig' => [
+                    'temperature'     => 0.7,
+                    'topP'            => 0.9,
+                    'maxOutputTokens' => 8192,
+                    'responseMimeType'=> 'application/json',
+                ],
+            ]);
 
-        $ch = curl_init($url);
-        curl_setopt_array($ch, [
-            CURLOPT_POST           => true,
-            CURLOPT_POSTFIELDS     => $body,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT        => self::TIMEOUT,
-            CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
-            CURLOPT_SSL_VERIFYPEER => true,
-        ]);
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [
+                CURLOPT_POST           => true,
+                CURLOPT_POSTFIELDS     => $body,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT        => self::TIMEOUT,
+                CURLOPT_HTTPHEADER     => [
+                    'Content-Type: application/json',
+                    'x-goog-api-key: ' . $this->apiKey,
+                ],
+                CURLOPT_SSL_VERIFYPEER => true,
+            ]);
 
-        $response  = curl_exec($ch);
-        $httpCode  = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $curlError = curl_error($ch);
-        curl_close($ch);
+            $response  = curl_exec($ch);
+            $httpCode  = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curlError = curl_error($ch);
+            curl_close($ch);
 
-        if ($curlError) {
-            throw new \Exception("Gemini connection error: {$curlError}");
-        }
+            if ($curlError) {
+                $lastError = "Gemini connection error: {$curlError}";
+                continue;
+            }
 
-        if ($httpCode !== 200) {
-            $decoded = json_decode($response, true);
+            if ($httpCode === 200) {
+                $this->model = $currentModel;
+                return (string)$response;
+            }
+
+            $decoded = json_decode((string)$response, true);
             $msg     = $decoded['error']['message'] ?? "HTTP {$httpCode}";
-            throw new \Exception("Gemini API error (HTTP {$httpCode}): {$msg}");
+            $lastError = "Gemini API error (HTTP {$httpCode} on {$currentModel}): {$msg}";
+
+            // If it's a 400 invalid API key error, don't keep trying other models since key is bad
+            if ($httpCode === 400 && str_contains(strtolower($msg), 'api key')) {
+                throw new \Exception($lastError);
+            }
         }
 
-        if (!$response) {
-            throw new \Exception("Empty response from Gemini API");
-        }
-
-        return $response;
+        throw new \Exception($lastError ?: "Failed to get valid response from Gemini API");
     }
 
     /**
@@ -208,7 +249,7 @@ PROMPT;
     {
         return [
             'available' => true,
-            'models'    => [self::MODEL],
+            'models'    => [$this->model],
             'error'     => null,
         ];
     }

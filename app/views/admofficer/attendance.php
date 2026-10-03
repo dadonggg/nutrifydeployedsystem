@@ -16,6 +16,7 @@ require __DIR__ . '/../partials/header.php';
 
 <div class="card">
     <div class="card-body p-0">
+        <div class="table-responsive">
         <table class="table table-hover mb-0">
             <thead><tr><th>ID</th><th>Member</th><th>Code</th><th>Check-in Time</th></tr></thead>
             <tbody>
@@ -33,6 +34,7 @@ require __DIR__ . '/../partials/header.php';
                 <?php endif; ?>
             </tbody>
         </table>
+        </div>
     </div>
 </div>
 

@@ -113,21 +113,33 @@ if (!empty($member['expiration_date']) && strtotime($member['expiration_date']) 
     </div>
 </div>
 
+<?php
+$qrCodeContent = !empty($member['qr_token'])
+    ? $member['qr_token']
+    : (!empty($member['membership_code'])
+        ? $member['membership_code']
+        : ($member['member_id_number'] ?? ('GYM-MEMBER-' . ($user['id'] ?? '1'))));
+?>
+
 <!-- Load QRCode library to render the member QR code -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const qrToken = "<?= htmlspecialchars($member['qr_token'] ?? '') ?>";
-    if (qrToken) {
-        new QRCode(document.getElementById("memberCardQr"), {
-            text: qrToken,
-            width: 108,
-            height: 108,
-            colorDark : "#0e1c12",
-            colorLight : "#f8f9fa",
-            correctLevel : QRCode.CorrectLevel.H
-        });
+    const qrText = <?= json_encode($qrCodeContent) ?>;
+    if (qrText) {
+        const container = document.getElementById("memberCardQr");
+        if (container) {
+            container.innerHTML = "";
+            new QRCode(container, {
+                text: qrText,
+                width: 120,
+                height: 120,
+                colorDark : "#000000",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+        }
     }
 });
 
@@ -208,10 +220,12 @@ function exportCardAsImage() {
     ctx.font = "bold 16px Courier, monospace";
     ctx.fillText("<?= htmlspecialchars($member['member_id_number'] ?? 'NTF-PENDING') ?>", 200, 265);
 
-    // Generate QR Code on Canvas
-    // Find the canvas/image inside the qrcode container
+    // Generate QR Code on Canvas - check canvas or img
+    const qrCanvas = document.querySelector("#memberCardQr canvas");
     const qrImg = document.querySelector("#memberCardQr img");
-    if (qrImg) {
+    if (qrCanvas) {
+        ctx.drawImage(qrCanvas, 130, 290, 140, 140);
+    } else if (qrImg && qrImg.complete && qrImg.naturalWidth !== 0) {
         ctx.drawImage(qrImg, 130, 290, 140, 140);
     }
 

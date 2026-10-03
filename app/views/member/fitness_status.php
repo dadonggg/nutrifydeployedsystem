@@ -413,8 +413,8 @@ body {
                           <a href="index.php?r=membership/fitnessprogram" class="btn btn-sm btn-success rounded-pill fw-semibold text-start px-3">
                               <i class="bi bi-play-circle-fill me-2"></i>🚀 Start Today's Workout & Track Sets
                           </a>
-                          <a href="index.php?r=membership/fitnessprogram&regenerate=1" class="btn btn-sm btn-outline-success rounded-pill fw-semibold text-start px-3">
-                              <i class="bi bi-magic me-2"></i>Generate / Build AI Workout Program
+                          <a href="index.php?r=membership/fitnessprogram" class="btn btn-sm btn-outline-success rounded-pill fw-semibold text-start px-3">
+                              <i class="bi bi-pencil-square me-2"></i>Build / Customize Workout Program
                           </a>
                           <a href="index.php?r=fitness/plan&request_id=<?= $request['id'] ?>" class="btn btn-sm btn-outline-dark rounded-pill fw-semibold text-start px-3">
                               <i class="bi bi-egg-fried me-2"></i>Create & Track Meal Plan
