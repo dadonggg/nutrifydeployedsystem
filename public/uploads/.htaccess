@@ -1,6 +1,22 @@
-# Prevent executing scripts in uploads directory
-<FilesMatch "\.(php|php5|php7|php8|phtml|phar|pl|py|cgi|asp|js|sh)$">
-    Order Deny,Allow
-    Deny from all
+# Prevent executing scripts in uploads directory (Apache 2.4 & InfinityFree compatible)
+<FilesMatch "\.(php|php5|php7|php8|phtml|phar|pl|py|cgi|asp|sh)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order Deny,Allow
+        Deny from all
+    </IfModule>
 </FilesMatch>
-Options -Indexes -ExecCGI
+
+# Explicitly allow media and document files
+<FilesMatch "\.(jpg|jpeg|png|webp|gif|svg|ico|pdf)$">
+    <IfModule mod_authz_core.c>
+        Require all granted
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order Allow,Deny
+        Allow from all
+    </IfModule>
+</FilesMatch>
+
