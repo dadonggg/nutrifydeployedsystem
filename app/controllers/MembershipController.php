@@ -520,7 +520,7 @@ final class MembershipController extends Controller
         $programSuccessRate = null;
         try {
             $analyticsModel = new \App\Models\ProgramSuccessAnalytics();
-            $programSuccessRate = $analyticsModel->calculateProgramSuccessRate();
+            $programSuccessRate = $analyticsModel->calculateProgramSuccessRate('all', 'all', 10.0, $ownerId);
         } catch (\Throwable $e) {
             $programSuccessRate = null;
         }
