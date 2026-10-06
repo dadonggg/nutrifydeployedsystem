@@ -1,5 +1,4 @@
-          
-        <?php
+<?php
 declare(strict_types=1);
 $pageTitle = 'Apply for Membership';
 require __DIR__ . '/../partials/header.php';
