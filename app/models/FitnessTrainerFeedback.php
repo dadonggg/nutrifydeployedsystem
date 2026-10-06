@@ -119,9 +119,19 @@ final class FitnessTrainerFeedback extends Model
         }
     }
 
-    public function getTotalFeedbackCount(?int $trainerId = null): int
+    public function getTotalFeedbackCount(?int $trainerId = null, ?int $ownerId = null): int
     {
         try {
+            if ($ownerId !== null && $ownerId > 0) {
+                $stmt = $this->db()->prepare(
+                    'SELECT COUNT(ftf.id) FROM fitness_trainer_feedback ftf
+                     JOIN gym_members gm ON gm.id = ftf.member_id
+                     LEFT JOIN membership_applications ma ON ma.id = gm.application_id
+                     WHERE (gm.gym_owner_id = :oid1 OR ma.gym_owner_id = :oid2)'
+                );
+                $stmt->execute([':oid1' => $ownerId, ':oid2' => $ownerId]);
+                return (int)$stmt->fetchColumn();
+            }
             if ($trainerId !== null && $trainerId > 0) {
                 $stmt = $this->db()->prepare('SELECT COUNT(*) FROM fitness_trainer_feedback WHERE trainer_id = :tid');
                 $stmt->execute([':tid' => $trainerId]);

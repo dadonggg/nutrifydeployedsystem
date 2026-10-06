@@ -233,12 +233,23 @@ final class ProgramSuccessAnalytics extends Model
      * @param float $threshold
      * @return array
      */
-    public function calculateProgramSuccessRate(?string $programFilter = null, ?string $ageGroupFilter = null, float $threshold = 10.0): array
+    public function calculateProgramSuccessRate(?string $programFilter = null, ?string $ageGroupFilter = null, float $threshold = 10.0, ?int $ownerId = null): array
     {
         $memberIds = [];
         try {
-            $stmt = $this->db()->query('SELECT id FROM gym_members ORDER BY id ASC');
-            $memberIds = $stmt->fetchAll(PDO::FETCH_COLUMN) ?: [];
+            if ($ownerId !== null && $ownerId > 0) {
+                $stmt = $this->db()->prepare(
+                    'SELECT gm.id FROM gym_members gm
+                     LEFT JOIN membership_applications ma ON ma.id = gm.application_id
+                     WHERE (gm.gym_owner_id = :oid1 OR ma.gym_owner_id = :oid2)
+                     ORDER BY gm.id ASC'
+                );
+                $stmt->execute([':oid1' => $ownerId, ':oid2' => $ownerId]);
+                $memberIds = $stmt->fetchAll(PDO::FETCH_COLUMN) ?: [];
+            } else {
+                $stmt = $this->db()->query('SELECT id FROM gym_members ORDER BY id ASC');
+                $memberIds = $stmt->fetchAll(PDO::FETCH_COLUMN) ?: [];
+            }
         } catch (\Throwable $e) {
             $memberIds = [];
         }
@@ -283,7 +294,7 @@ final class ProgramSuccessAnalytics extends Model
 
         // Completed Feedback Instances (N_fb)
         $feedbackModel = new FitnessTrainerFeedback();
-        $completedFeedbackInstances = $feedbackModel->getTotalFeedbackCount();
+        $completedFeedbackInstances = $feedbackModel->getTotalFeedbackCount(null, $ownerId);
 
         // Baseline safeguards: If no logs yet, each participant counts as 1 coaching opportunity
         $Nco = max($N, $totalCoachingOpportunities);

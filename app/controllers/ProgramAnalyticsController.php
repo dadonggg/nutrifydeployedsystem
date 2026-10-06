@@ -37,9 +37,10 @@ final class ProgramAnalyticsController extends Controller
         $programFilter = $_GET['program'] ?? 'all';
         $ageGroupFilter = $_GET['age_group'] ?? 'all';
         $threshold = isset($_GET['threshold']) ? (float)$_GET['threshold'] : 10.0;
+        $ownerId = ($user['role'] === 'gym_owner') ? (int)$user['id'] : null;
 
         $analyticsModel = new ProgramSuccessAnalytics();
-        $results = $analyticsModel->calculateProgramSuccessRate($programFilter, $ageGroupFilter, $threshold);
+        $results = $analyticsModel->calculateProgramSuccessRate($programFilter, $ageGroupFilter, $threshold, $ownerId);
 
         $this->view('trainer/program_analytics', [
             'pageTitle' => 'Program Success & Feedback Analytics',
@@ -59,9 +60,10 @@ final class ProgramAnalyticsController extends Controller
         $programFilter = $_GET['program'] ?? 'all';
         $ageGroupFilter = $_GET['age_group'] ?? 'all';
         $threshold = isset($_GET['threshold']) ? (float)$_GET['threshold'] : 10.0;
+        $ownerId = ($user['role'] === 'gym_owner') ? (int)$user['id'] : null;
 
         $analyticsModel = new ProgramSuccessAnalytics();
-        $results = $analyticsModel->calculateProgramSuccessRate($programFilter, $ageGroupFilter, $threshold);
+        $results = $analyticsModel->calculateProgramSuccessRate($programFilter, $ageGroupFilter, $threshold, $ownerId);
 
         echo json_encode([
             'success' => true,

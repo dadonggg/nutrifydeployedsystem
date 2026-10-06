@@ -1102,17 +1102,33 @@ final class GymownerController extends Controller
                 } else {
                     // Logo upload
                     $gymLogo = null;
-                    if (!empty($_FILES['gym_logo']['tmp_name'])) {
-                        $uploadDir = BASE_PATH . '/public/uploads/legal_documents/';
-                        if (!is_dir($uploadDir)) { @mkdir($uploadDir, 0777, true); }
-                        $ext = strtolower(pathinfo($_FILES['gym_logo']['name'], PATHINFO_EXTENSION));
-                        if (in_array($ext, ['jpg', 'jpeg', 'png', 'webp'], true)) {
-                            $logoFilename = 'gym_logo_' . $gymOwnerId . '_' . time() . '.' . $ext;
-                            if (move_uploaded_file($_FILES['gym_logo']['tmp_name'], $uploadDir . $logoFilename)) {
-                                $gymLogo = 'uploads/legal_documents/' . $logoFilename;
+                    if (isset($_FILES['gym_logo']) && $_FILES['gym_logo']['error'] !== UPLOAD_ERR_NO_FILE) {
+                        if ($_FILES['gym_logo']['error'] !== UPLOAD_ERR_OK) {
+                            $error = 'Gym Logo upload failed (Error code ' . (int)$_FILES['gym_logo']['error'] . ').';
+                        } elseif ($_FILES['gym_logo']['size'] > 5 * 1024 * 1024) {
+                            $error = 'Gym Logo exceeds maximum file size of 5MB.';
+                        } else {
+                            $uploadDir = BASE_PATH . '/public/uploads/legal_documents/';
+                            if (!is_dir($uploadDir)) { @mkdir($uploadDir, 0777, true); }
+                            $ext = strtolower(pathinfo($_FILES['gym_logo']['name'], PATHINFO_EXTENSION));
+                            if (!in_array($ext, ['jpg', 'jpeg', 'png', 'webp'], true)) {
+                                $error = 'Invalid image format for Gym Logo. Allowed formats: JPG, PNG, WEBP.';
+                            } else {
+                                $logoFilename = 'gym_logo_' . $gymOwnerId . '_' . time() . '.' . $ext;
+                                $destination = $uploadDir . $logoFilename;
+                                if (move_uploaded_file($_FILES['gym_logo']['tmp_name'], $destination)) {
+                                    @chmod($destination, 0644);
+                                    $gymLogo = 'uploads/legal_documents/' . $logoFilename;
+                                } else {
+                                    $error = 'Failed to save uploaded Gym Logo to server. Please check folder permissions.';
+                                }
                             }
                         }
                     }
+
+                    if ($error !== '') {
+                        // Keep error state and stop profile update if logo upload specifically failed
+                    } else {
 
                     // Opening hours processing
                     $days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
@@ -1149,7 +1165,8 @@ final class GymownerController extends Controller
                         $error = 'Failed to update gym profile.';
                     }
                 }
-            } elseif ($action === 'add_equipment') {
+            }
+        } elseif ($action === 'add_equipment') {
                 $name        = trim((string)($_POST['name'] ?? ''));
                 $category    = trim((string)($_POST['category'] ?? 'General'));
                 $brand       = trim((string)($_POST['brand'] ?? ''));

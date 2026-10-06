@@ -259,6 +259,17 @@ if (!columnExists($pdo, 'gym_members', 'gym_owner_id')) {
     echo "⏭  Column gym_owner_id already exists in gym_members\n";
 }
 
+echo "\n=== STEP 11: Inspect legal_documents gym_logo values ===\n";
+try {
+    $stmt = $pdo->query("SELECT id, user_id, gym_name, gym_logo FROM legal_documents ORDER BY id DESC LIMIT 5");
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    foreach ($rows as $r) {
+        echo "DOC #{$r['id']} | User: {$r['user_id']} | Gym: {$r['gym_name']} | Logo: '{$r['gym_logo']}'\n";
+    }
+} catch (PDOException $e) {
+    echo "⚠️ Query failed: " . $e->getMessage() . "\n";
+}
+
 echo "\n\n════════════════════════════════════════════════════════════\n";
 $ok   = count(array_filter($results, fn($r) => $r[0] === 'ok'));
 $skip = count(array_filter($results, fn($r) => $r[0] === 'skip'));

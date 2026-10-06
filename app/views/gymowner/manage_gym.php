@@ -91,18 +91,41 @@ foreach (($openingHours ?? []) as $row) {
                         </div>
                         <div class="card-body">
                             <!-- Logo Preview -->
+                            <?php
+                            $rawLogo = trim((string)($gym['gym_logo'] ?? ''));
+                            $logoSrc = '';
+                            if ($rawLogo !== '') {
+                                if (str_starts_with($rawLogo, 'http://') || str_starts_with($rawLogo, 'https://')) {
+                                    $logoSrc = $rawLogo;
+                                } elseif (str_starts_with($rawLogo, 'public/')) {
+                                    $logoSrc = $rawLogo;
+                                } elseif (str_starts_with($rawLogo, 'uploads/')) {
+                                    $logoSrc = 'public/' . $rawLogo;
+                                } elseif (str_starts_with($rawLogo, '/')) {
+                                    $logoSrc = 'public' . $rawLogo;
+                                } else {
+                                    $logoSrc = 'public/uploads/legal_documents/' . $rawLogo;
+                                }
+                            }
+                            ?>
                             <div class="mb-4 d-flex align-items-center gap-3">
-                                <?php if (!empty($gym['gym_logo'])): ?>
-                                    <img src="public/<?= $h($gym['gym_logo']) ?>" alt="Logo" class="rounded border p-1" style="width: 80px; height: 80px; object-fit: cover;">
-                                <?php else: ?>
-                                    <div class="rounded bg-light border d-flex align-items-center justify-content-center text-muted" style="width: 80px; height: 80px;">
-                                        <i class="bi bi-image fs-2"></i>
-                                    </div>
-                                <?php endif; ?>
+                                <div class="position-relative rounded border overflow-hidden" style="width: 80px; height: 80px; background: #f8fafc; flex-shrink: 0;">
+                                    <?php if ($logoSrc !== ''): ?>
+                                        <img id="gymLogoPreview" src="<?= $h($logoSrc) ?>" alt="Gym Logo" class="w-100 h-100 p-1" style="object-fit: cover;" onerror="this.style.display='none'; const fb = document.getElementById('gymLogoFallback'); if(fb) { fb.classList.remove('d-none'); fb.classList.add('d-flex'); }">
+                                        <div id="gymLogoFallback" class="rounded bg-light d-none align-items-center justify-content-center text-muted w-100 h-100">
+                                            <i class="bi bi-image fs-2"></i>
+                                        </div>
+                                    <?php else: ?>
+                                        <img id="gymLogoPreview" src="" alt="Gym Logo" class="w-100 h-100 p-1 d-none" style="object-fit: cover;">
+                                        <div id="gymLogoFallback" class="rounded bg-light d-flex align-items-center justify-content-center text-muted w-100 h-100">
+                                            <i class="bi bi-image fs-2"></i>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
                                 <div>
                                     <label for="gym_logo" class="form-label fw-semibold mb-1">Gym Logo / Cover Image</label>
-                                    <input type="file" name="gym_logo" id="gym_logo" class="form-control form-control-sm" accept="image/*">
-                                    <small class="text-muted">Allowed formats: JPG, PNG, WEBP</small>
+                                    <input type="file" name="gym_logo" id="gym_logo" class="form-control form-control-sm" accept="image/jpeg,image/png,image/webp,image/jpg" onchange="previewGymLogo(this)">
+                                    <small class="text-muted">Allowed formats: JPG, PNG, WEBP (Max: 5MB)</small>
                                 </div>
                             </div>
 
@@ -661,6 +684,32 @@ function editPackage(item) {
     document.getElementById('pkg_price').value = item.price || 0;
     document.getElementById('pkg_desc').value = item.description || '';
     new bootstrap.Modal(document.getElementById('addPackageModal')).show();
+}
+
+function previewGymLogo(input) {
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        if (file.size > 5 * 1024 * 1024) {
+            alert('Gym Logo exceeds maximum file size of 5MB.');
+            input.value = '';
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const preview = document.getElementById('gymLogoPreview');
+            const fallback = document.getElementById('gymLogoFallback');
+            if (preview) {
+                preview.src = e.target.result;
+                preview.classList.remove('d-none');
+                preview.style.display = 'block';
+            }
+            if (fallback) {
+                fallback.classList.add('d-none');
+                fallback.classList.remove('d-flex');
+            }
+        };
+        reader.readAsDataURL(file);
+    }
 }
 </script>
 
