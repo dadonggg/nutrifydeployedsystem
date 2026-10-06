@@ -129,10 +129,10 @@ final class GymMember extends Model
                  FROM gym_members gm
                  JOIN users u ON u.id = gm.user_id 
                  LEFT JOIN membership_applications ma ON ma.id = gm.application_id
-                 WHERE (gm.gym_owner_id = :oid OR ma.gym_owner_id = :oid)
+                 WHERE (gm.gym_owner_id = :oid1 OR ma.gym_owner_id = :oid2)
                  ORDER BY gm.created_at DESC'
             );
-            $stmt->execute([':oid' => $ownerId]);
+            $stmt->execute([':oid1' => $ownerId, ':oid2' => $ownerId]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
@@ -155,21 +155,21 @@ final class GymMember extends Model
                     'SELECT gm.*, u.fullname, u.email FROM gym_members gm
                      JOIN users u ON u.id = gm.user_id
                      LEFT JOIN membership_applications ma ON ma.id = gm.application_id
-                     WHERE (gm.gym_owner_id = :oid OR ma.gym_owner_id = :oid)
+                     WHERE (gm.gym_owner_id = :oid1 OR ma.gym_owner_id = :oid2)
                        AND gm.is_active = 1 AND (gm.expiration_date IS NULL OR gm.expiration_date >= CURDATE())
                      ORDER BY gm.created_at DESC'
                 );
-                $stmt->execute([':oid' => $ownerId]);
+                $stmt->execute([':oid1' => $ownerId, ':oid2' => $ownerId]);
                 return $stmt->fetchAll(PDO::FETCH_ASSOC);
             } catch (\PDOException $e) {
                 $stmt = $this->db()->prepare(
                     'SELECT gm.*, u.fullname, u.email FROM gym_members gm
                      JOIN users u ON u.id = gm.user_id
                      LEFT JOIN membership_applications ma ON ma.id = gm.application_id
-                     WHERE (gm.gym_owner_id = :oid OR ma.gym_owner_id = :oid)
+                     WHERE (gm.gym_owner_id = :oid1 OR ma.gym_owner_id = :oid2)
                        AND gm.is_active = 1 ORDER BY gm.created_at DESC'
                 );
-                $stmt->execute([':oid' => $ownerId]);
+                $stmt->execute([':oid1' => $ownerId, ':oid2' => $ownerId]);
                 return $stmt->fetchAll(PDO::FETCH_ASSOC);
             }
         }
@@ -200,10 +200,10 @@ final class GymMember extends Model
                 $stmt = $this->db()->prepare(
                     "SELECT COALESCE(SUM(gm.payment_amount),0) as total FROM gym_members gm
                      LEFT JOIN membership_applications ma ON ma.id = gm.application_id
-                     WHERE (gm.gym_owner_id = :oid OR ma.gym_owner_id = :oid)
+                     WHERE (gm.gym_owner_id = :oid1 OR ma.gym_owner_id = :oid2)
                        AND DATE_FORMAT(gm.created_at, '%Y-%m') = :my"
                 );
-                $stmt->execute([':oid' => $ownerId, ':my' => $monthYear]);
+                $stmt->execute([':oid1' => $ownerId, ':oid2' => $ownerId, ':my' => $monthYear]);
                 return (float)$stmt->fetch(PDO::FETCH_ASSOC)['total'];
             } catch (\PDOException $e) { return 0.0; }
         }
@@ -230,12 +230,12 @@ final class GymMember extends Model
                             COUNT(DISTINCT gm.id) as member_count
                      FROM gym_members gm
                      LEFT JOIN membership_applications ma ON ma.id = gm.application_id
-                     WHERE (gm.gym_owner_id = :oid OR ma.gym_owner_id = :oid)
+                     WHERE (gm.gym_owner_id = :oid1 OR ma.gym_owner_id = :oid2)
                        AND gm.created_at >= DATE_SUB(CURDATE(), INTERVAL {$months} MONTH)
                      GROUP BY DATE_FORMAT(gm.created_at, '%Y-%m')
                      ORDER BY month DESC"
                 );
-                $stmt->execute([':oid' => $ownerId]);
+                $stmt->execute([':oid1' => $ownerId, ':oid2' => $ownerId]);
                 return $stmt->fetchAll(PDO::FETCH_ASSOC);
             } catch (\PDOException $e) { return []; }
         }

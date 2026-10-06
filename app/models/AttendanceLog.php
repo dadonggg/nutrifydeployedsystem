@@ -58,10 +58,10 @@ final class AttendanceLog extends Model
                  JOIN gym_members gm ON gm.id = al.member_id
                  LEFT JOIN membership_applications ma ON ma.id = gm.application_id
                  JOIN users u ON u.id = gm.user_id
-                 WHERE (gm.gym_owner_id = :oid OR ma.gym_owner_id = :oid)
+                 WHERE (gm.gym_owner_id = :oid1 OR ma.gym_owner_id = :oid2)
                  ORDER BY al.check_in DESC'
             );
-            $stmt->execute([':oid' => $ownerId]);
+            $stmt->execute([':oid1' => $ownerId, ':oid2' => $ownerId]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
