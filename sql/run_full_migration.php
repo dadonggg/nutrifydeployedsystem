@@ -264,7 +264,9 @@ try {
     $stmt = $pdo->query("SELECT id, user_id, gym_name, gym_logo FROM legal_documents ORDER BY id DESC LIMIT 5");
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
     foreach ($rows as $r) {
-        echo "DOC #{$r['id']} | User: {$r['user_id']} | Gym: {$r['gym_name']} | Logo: '{$r['gym_logo']}'\n";
+        $filePath = BASE_PATH . '/public/' . $r['gym_logo'];
+        $exists = (!empty($r['gym_logo']) && file_exists($filePath)) ? "EXISTS (" . filesize($filePath) . " bytes)" : "MISSING ON DISK (path: $filePath)";
+        echo "DOC #{$r['id']} | User: {$r['user_id']} | Gym: {$r['gym_name']} | File: $exists\n";
     }
 } catch (PDOException $e) {
     echo "⚠️ Query failed: " . $e->getMessage() . "\n";
