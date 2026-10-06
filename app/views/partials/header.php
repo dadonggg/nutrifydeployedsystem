@@ -584,6 +584,8 @@ if (!empty($_SESSION['user_id'])) {
                 <div class="nav-section">Staff</div>
                 <a class="nav-link" href="index.php?r=staff/apply"><span><i class="bi bi-person-badge"></i> Apply as Staff</span></a>
                 <div class="nav-section">Membership</div>
+                <a class="nav-link <?= (isset($_GET['r']) && $_GET['r']==='member/membership') ? 'active' : '' ?>" href="index.php?r=member/membership"><span><i class="bi bi-credit-card"></i> Membership &amp; Renewal</span></a>
+                <a class="nav-link <?= (isset($_GET['r']) && $_GET['r']==='membership/myid') ? 'active' : '' ?>" href="index.php?r=membership/myid"><span><i class="bi bi-person-vcard"></i> Digital ID Card</span></a>
                 <a class="nav-link" href="index.php?r=membership/apply"><span><i class="bi bi-card-checklist"></i> Apply for Membership</span></a>
                 <a class="nav-link" href="index.php?r=membership/verifycode"><span><i class="bi bi-qr-code"></i> Verify Membership</span></a>
                 <div class="nav-section">Fitness Training</div>

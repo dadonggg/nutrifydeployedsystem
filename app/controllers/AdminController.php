@@ -80,29 +80,89 @@ final class AdminController extends Controller
                 if (!empty($flaggedDocs)) {
                     $error = 'Cannot verify all documents. The following documents are flagged and must be resolved first: ' . implode(', ', $flaggedDocs) . '. Please approve or reset these documents before using "Verify All".';
                 } else {
-                    $docModel->updateStatus($id, 'verified', $feedback);
-                    // Convert user to gym owner immediately
-                    $roleUpdateSuccess = (new User())->updateRole((int)$doc['user_id'], 'gym_owner');
-                    
-                    if ($roleUpdateSuccess) {
-                        $this->notify((int)$doc['user_id'], 'Congratulations! You are now a Gym Owner',
-                            'All your documents have been verified. You can now access the Gym Owner dashboard. Please logout and login again to see your new role.',
-                            'success', 'home/index');
-                        $success = 'Application verified and user converted to Gym Owner successfully. The user needs to logout and login again to see the new role.';
+                    $verifySuccess = $docModel->verifyAll($id, $feedback);
+                    if (!$verifySuccess) {
+                        $error = 'Failed to verify documents. Please try again.';
                     } else {
-                        $this->notify((int)$doc['user_id'], 'Documents Verified',
-                            'Your documents have been verified, but there was an issue updating your role. Please contact support.',
-                            'warning', 'home/index');
-                        $success = 'Application verified, but role conversion failed. Please check the logs.';
+                        $targetUserId = (int)$doc['user_id'];
+
+                        // === TRIPLE-LAYER role promotion ===
+                        // Layer 1: via User model method
+                        (new User())->updateRole($targetUserId, 'gym_owner');
+
+                        // Layer 2: direct PDO, no wrapper
+                        try {
+                            $pdo = \App\Core\Database::pdo();
+                            $pdo->exec("UPDATE users SET role = 'gym_owner' WHERE id = " . (int)$targetUserId);
+                        } catch (\Throwable $ex) {
+                            error_log('[VerifyAll] Layer-2 PDO exec failed for user ' . $targetUserId . ': ' . $ex->getMessage());
+                        }
+
+                        // Layer 3: prepared statement as ultimate fallback
+                        try {
+                            $pdo2 = \App\Core\Database::pdo();
+                            $st = $pdo2->prepare('UPDATE users SET role = ? WHERE id = ?');
+                            $st->execute(['gym_owner', $targetUserId]);
+                            error_log('[VerifyAll] Layer-3 prepared, rowCount=' . $st->rowCount() . ', userId=' . $targetUserId);
+                        } catch (\Throwable $ex2) {
+                            error_log('[VerifyAll] Layer-3 prepared failed for user ' . $targetUserId . ': ' . $ex2->getMessage());
+                        }
+
+                        // Confirm final DB state
+                        $confirmedUser = (new User())->findById($targetUserId);
+                        $roleOk = ($confirmedUser && $confirmedUser['role'] === 'gym_owner');
+                        error_log('[VerifyAll] Final role check for userId=' . $targetUserId . ': role=' . ($confirmedUser['role'] ?? 'NOT FOUND') . ', roleOk=' . ($roleOk ? 'YES' : 'NO'));
+
+                        $this->notify($targetUserId,
+                            'Congratulations! You are now a Gym Owner',
+                            'All your documents have been verified. Your role has been updated. Please go to your dashboard to access Gym Owner features.',
+                            'success', 'home/index');
+
+                        if ($roleOk) {
+                            $success = '✅ Documents verified and user successfully converted to Gym Owner! Role confirmed in database.';
+                        } else {
+                            $success = '⚠️ Documents verified, but role update could not be confirmed. Check error logs. Current role: ' . ($confirmedUser['role'] ?? 'unknown');
+                        }
+                        $this->logAdminAction((int)$user['id'], 'verify_all_documents', $id, $roleOk ? 'converted_to_gym_owner' : 'role_update_unconfirmed');
                     }
+                }
+            } elseif ($action === 'convert') {
+                $targetUserId = (int)$doc['user_id'];
+                (new User())->updateRole($targetUserId, 'gym_owner');
+                
+                try {
+                    $pdo = \App\Core\Database::pdo();
+                    $stmt = $pdo->prepare("UPDATE users SET role = 'gym_owner' WHERE id = ?");
+                    $stmt->execute([$targetUserId]);
+                } catch (\Throwable $ex) {
+                    error_log('Direct role update (convert) failed: ' . $ex->getMessage());
+                }
+
+                // Keep legal_documents in sync
+                $docModel->verifyAll($id, 'Approved and converted to Gym Owner by Administrator');
+
+                $updatedUser = (new User())->findById($targetUserId);
+                $roleOk = ($updatedUser && $updatedUser['role'] === 'gym_owner');
+
+                if ($roleOk) {
+                    $this->notify($targetUserId, 'Congratulations! You are now a Gym Owner',
+                        'You have been converted to a Gym Owner. You can now access the Gym Owner dashboard.',
+                        'success', 'home/index');
+                    $success = '✅ User successfully converted to Gym Owner! Role confirmed in database.';
+                    $this->logAdminAction((int)$user['id'], 'convert_to_gym_owner', $id, 'user_' . $targetUserId);
+                } else {
+                    $error = 'Failed to convert user role. Please check database permissions and try again.';
+                    $this->logAdminAction((int)$user['id'], 'convert_to_gym_owner_failed', $id, 'user_' . $targetUserId);
                 }
             } elseif ($action === 'resubmit') {
                 if ($feedback === '') { $error = 'Feedback is required when requesting resubmission.'; }
                 else {
                     $docModel->updateStatus($id, 'resubmit', $feedback);
+                    // Flag unapproved documents so applicant sees upload inputs immediately
+                    $docModel->flagUnapprovedDocs($id, $feedback);
                     $this->notify((int)$doc['user_id'], 'Resubmission Required',
                         $feedback, 'warning', 'gymowner/apply');
-                    $success = 'Resubmission requested.';
+                    $success = 'Resubmission requested and documents flagged for applicant upload.';
                 }
             } elseif ($action === 'reject') {
                 if ($feedback === '') { $error = 'Feedback is required when rejecting.'; }
@@ -149,12 +209,35 @@ final class AdminController extends Controller
                                     }
                                     $notifId = $this->notify((int)$doc['user_id'], "$label Approved", $notifMessage, 'success', 'gymowner/apply');
                                     
-                                    if ($notifId > 0) {
-                                        $success = "Document approved and gym owner notified.";
-                                        $this->logAdminAction((int)$user['id'], 'approve_document', $id, $docField);
+                                    if (($doc['status'] ?? '') === 'verified') {
+                                        // All docs approved — update user role to gym_owner
+                                        $targetUserId = (int)$doc['user_id'];
+                                        (new User())->updateRole($targetUserId, 'gym_owner');
+                                        // Verify by re-fetching
+                                        $updatedUser = (new User())->findById($targetUserId);
+                                        if (!$updatedUser || $updatedUser['role'] !== 'gym_owner') {
+                                            // Fallback direct update
+                                            try {
+                                                $pdo = \App\Core\Database::pdo();
+                                                $stmt = $pdo->prepare('UPDATE users SET role = ? WHERE id = ?');
+                                                $stmt->execute(['gym_owner', $targetUserId]);
+                                            } catch (\Exception $ex) {
+                                                error_log('Direct role update (approve_doc) failed: ' . $ex->getMessage());
+                                            }
+                                        }
+                                        $this->notify($targetUserId, 'Congratulations! You are now a Gym Owner',
+                                            'All your documents have been verified. You can now access the Gym Owner dashboard. Please logout and login again to see your new role.',
+                                            'success', 'home/index');
+                                        $success = "Document approved! All documents verified and user converted to Gym Owner.";
+                                        $this->logAdminAction((int)$user['id'], 'approve_document_all_verified', $id, $docField);
                                     } else {
-                                        $success = "Document approved but notification failed.";
-                                        $this->logAdminAction((int)$user['id'], 'approve_document_notif_failed', $id, $docField);
+                                        if ($notifId > 0) {
+                                            $success = "Document approved and gym owner notified.";
+                                            $this->logAdminAction((int)$user['id'], 'approve_document', $id, $docField);
+                                        } else {
+                                            $success = "Document approved but notification failed.";
+                                            $this->logAdminAction((int)$user['id'], 'approve_document_notif_failed', $id, $docField);
+                                        }
                                     }
                                 } elseif ($docStatus === 'flagged') {
                                     // Always send notification when flagged, even if comment is empty
@@ -192,6 +275,7 @@ final class AdminController extends Controller
         $applicant = (new User())->findById((int)$doc['user_id']);
         $this->view('admin/review_legal', ['user' => $user, 'doc' => $doc, 'applicant' => $applicant, 'error' => $error, 'success' => $success]);
     }
+
 
     /**
      * Log admin actions for audit trail
@@ -420,4 +504,15 @@ final class AdminController extends Controller
             'stats' => $stats
         ]);
     }
+
+    /**
+     * Admin diagnostic tool: fix gym owner roles that were not updated due to the previous bug.
+     * Access: GET/POST index.php?r=admin/fixgymownerroles
+     */
+    public function fixgymownerrolesAction(): void
+    {
+        $this->requireAdmin();
+        $this->view('admin/fix_gym_owner_roles', []);
+    }
 }
+

@@ -71,6 +71,14 @@ final class HomeController extends Controller
     private function customerDashboard(array $user): void
     {
         $legalDoc = (new LegalDocument())->findByUserId((int)$user['id']);
+
+        // If user's legal document was verified, auto-promote to gym_owner and load gym owner dashboard
+        if ($legalDoc && $legalDoc['status'] === 'verified') {
+            (new User())->updateRole((int)$user['id'], 'gym_owner');
+            $this->redirect('home/index');
+            return;
+        }
+
         $staffApp = (new StaffApplication())->findByUserId((int)$user['id']);
         $memberApp = (new MembershipApplication())->findByUserId((int)$user['id']);
         $gymMember = (new GymMember())->findByUserId((int)$user['id']);
@@ -95,20 +103,21 @@ final class HomeController extends Controller
         $invModel = new GymInventory();
         $memberModel = new GymMember();
 
-        $budget = $finModel->getBudget((int)$user['id']);
-        $totalExpenses = $finModel->getTotalExpenses((int)$user['id']);
-        $totalEquipment = $invModel->getTotalSpent((int)$user['id']);
+        $ownerId = (int)$user['id'];
+        $budget = $finModel->getBudget($ownerId);
+        $totalExpenses = $finModel->getTotalExpenses($ownerId);
+        $totalEquipment = $invModel->getTotalSpent($ownerId);
         $staffApps = (new StaffApplication())->findAllPending();
 
-        // Revenue & Members data for dashboard
-        $totalRevenue = $finModel->getTotalRevenue((int)$user['id']);
-        $revenueBreakdown = $finModel->getRevenueBreakdown((int)$user['id']);
-        $monthlyProfit = $finModel->getMonthlyProfit((int)$user['id']);
-        $members = $memberModel->findAll();
-        $activeMembers = $memberModel->findAllActive();
-        $monthlyMemberRevenue = $memberModel->getMonthlyRevenue();
-        $revenueByMonth = $memberModel->getRevenueByMonth(6);
-        $memberApps = (new MembershipApplication())->findAll();
+        // Revenue & Members data for dashboard - strictly scoped to this gym owner!
+        $totalRevenue = $finModel->getTotalRevenue($ownerId);
+        $revenueBreakdown = $finModel->getRevenueBreakdown($ownerId);
+        $monthlyProfit = $finModel->getMonthlyProfit($ownerId);
+        $members = $memberModel->findAll($ownerId);
+        $activeMembers = $memberModel->findAllActive($ownerId);
+        $monthlyMemberRevenue = $memberModel->getMonthlyRevenue(null, $ownerId);
+        $revenueByMonth = $memberModel->getRevenueByMonth(6, $ownerId);
+        $memberApps = (new MembershipApplication())->findAll($ownerId);
         $pendingMemberApps = array_filter($memberApps, fn($a) => in_array($a['status'], ['pending', 'resubmit'], true));
 
         $builderCampaign = null;

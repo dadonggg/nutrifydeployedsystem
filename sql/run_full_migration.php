@@ -219,6 +219,46 @@ run($pdo, 'Create notifications', "
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
 ");
 
+echo "\n=== STEP 9: legal_documents table columns ===\n";
+$legalDocCols = [
+    'cert_registration_status'  => "ENUM('pending','approved','flagged') DEFAULT 'pending'",
+    'cert_registration_comment' => "TEXT DEFAULT NULL",
+    'cert_registration_checked' => "TINYINT(1) DEFAULT 0",
+    'mayors_permit_status'      => "ENUM('pending','approved','flagged') DEFAULT 'pending'",
+    'mayors_permit_comment'     => "TEXT DEFAULT NULL",
+    'mayors_permit_checked'     => "TINYINT(1) DEFAULT 0",
+    'business_name_cert_status' => "ENUM('pending','approved','flagged') DEFAULT 'pending'",
+    'business_name_cert_comment'=> "TEXT DEFAULT NULL",
+    'business_name_cert_checked'=> "TINYINT(1) DEFAULT 0",
+    'fire_safety_cert_status'   => "ENUM('pending','approved','flagged') DEFAULT 'pending'",
+    'fire_safety_cert_comment'  => "TEXT DEFAULT NULL",
+    'fire_safety_cert_checked'  => "TINYINT(1) DEFAULT 0",
+    'street_address'            => "VARCHAR(255) DEFAULT NULL",
+    'province'                  => "VARCHAR(100) DEFAULT NULL",
+    'city_municipality'         => "VARCHAR(100) DEFAULT NULL",
+    'barangay'                  => "VARCHAR(100) DEFAULT NULL",
+    'other_staff_needed'        => "TEXT DEFAULT NULL",
+    'maintenance_count'         => "INT DEFAULT 0",
+    'trainer_count'             => "INT DEFAULT 0",
+    'gym_description'           => "TEXT DEFAULT NULL",
+    'opening_hours'             => "JSON DEFAULT NULL",
+];
+
+foreach ($legalDocCols as $col => $def) {
+    if (!columnExists($pdo, 'legal_documents', $col)) {
+        run($pdo, "Add column $col to legal_documents", "ALTER TABLE `legal_documents` ADD COLUMN `$col` $def");
+    } else {
+        echo "⏭  Column $col already exists in legal_documents\n";
+    }
+}
+
+echo "\n=== STEP 10: gym_members table columns ===\n";
+if (!columnExists($pdo, 'gym_members', 'gym_owner_id')) {
+    run($pdo, "Add column gym_owner_id to gym_members", "ALTER TABLE `gym_members` ADD COLUMN `gym_owner_id` INT DEFAULT NULL AFTER `user_id`");
+} else {
+    echo "⏭  Column gym_owner_id already exists in gym_members\n";
+}
+
 echo "\n\n════════════════════════════════════════════════════════════\n";
 $ok   = count(array_filter($results, fn($r) => $r[0] === 'ok'));
 $skip = count(array_filter($results, fn($r) => $r[0] === 'skip'));

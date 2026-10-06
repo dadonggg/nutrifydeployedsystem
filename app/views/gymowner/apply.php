@@ -41,19 +41,15 @@ $docLabels = [
         <div class="card-body text-center py-4">
             <?php if ($legalDoc['status'] === 'verified'): ?>
                 <i class="bi bi-check-circle display-3 text-success mb-3"></i>
-                <h2 class="h5">Application Verified!</h2>
-                <p class="text-muted">Your documents have been verified. The admin will convert your account to Gym Owner.</p>
-                <?php if ($user['role'] === 'customer'): ?>
-                    <div class="alert alert-info mt-3">
-                        <i class="bi bi-info-circle me-1"></i>
-                        <strong>Important:</strong> If your role has been updated to Gym Owner, please 
-                        <a href="index.php?r=home/logout" class="alert-link">logout</a> and login again to access your Gym Owner dashboard.
-                    </div>
-                <?php endif; ?>
+                <h2 class="h5 text-success">Application Verified!</h2>
+                <p class="text-muted">All your documents have been verified. You now have full access to the Gym Owner dashboard.</p>
+                <div class="mt-3">
+                    <a href="index.php?r=home/index" class="btn btn-success"><i class="bi bi-speedometer2 me-1"></i> Go to Gym Owner Dashboard</a>
+                </div>
             <?php elseif ($legalDoc['status'] === 'resubmit'): ?>
                 <i class="bi bi-exclamation-triangle display-3 text-danger mb-3"></i>
-                <h2 class="h5 text-danger">Action Required — Documents Flagged</h2>
-                <p class="text-muted">One or more documents were flagged by the admin. Please review the details below and resubmit.</p>
+                <h2 class="h5 text-danger">Action Required — Documents Flagged for Resubmission</h2>
+                <p class="text-muted">One or more documents were flagged by the admin. Please upload a corrected file for each document marked below.</p>
             <?php else: ?>
                 <i class="bi bi-hourglass-split display-3 text-warning mb-3"></i>
                 <h2 class="h5">Application Under Review</h2>
@@ -140,21 +136,25 @@ $docLabels = [
                     $docStatus = $legalDoc[$statusKey] ?? 'pending';
                     $docComment = $legalDoc[$commentKey] ?? '';
 
+                    $isFlagged = ($docStatus === 'flagged');
+                    $isApproved = ($docStatus === 'approved');
+                    $canResubmit = !$isApproved && ($isFlagged || $legalDoc['status'] === 'resubmit');
+
                     $statusIcon = [
                         'approved' => 'bi-check-circle-fill text-success',
                         'flagged'  => 'bi-x-circle-fill text-danger',
                     ][$docStatus] ?? 'bi-dash-circle text-warning';
                     $statusLabel = [
                         'approved' => 'Accepted',
-                        'flagged'  => 'Flagged',
-                    ][$docStatus] ?? 'Pending';
+                        'flagged'  => 'Flagged for Resubmission',
+                    ][$docStatus] ?? ($legalDoc['status'] === 'resubmit' ? 'Needs Resubmission' : 'Pending Review');
                     $statusBadge = [
                         'approved' => 'bg-success',
                         'flagged'  => 'bg-danger',
-                    ][$docStatus] ?? 'bg-warning text-dark';
+                    ][$docStatus] ?? ($legalDoc['status'] === 'resubmit' ? 'bg-danger' : 'bg-warning text-dark');
                 ?>
                 <div class="col-md-6">
-                    <div class="border rounded p-3" style="border-color:<?= $docStatus === 'flagged' ? 'rgba(220,53,69,.4)' : ($docStatus === 'approved' ? 'rgba(25,135,84,.3)' : 'rgba(255,193,7,.3)') ?>!important">
+                    <div class="border rounded p-3" style="border-color:<?= ($isFlagged || ($legalDoc['status'] === 'resubmit' && !$isApproved)) ? 'rgba(220,53,69,.5)' : ($isApproved ? 'rgba(25,135,84,.3)' : 'rgba(255,193,7,.3)') ?>!important">
                         <div class="d-flex align-items-center justify-content-between mb-2">
                             <div class="fw-bold small">
                                 <i class="<?= $statusIcon ?> me-1"></i><?= $label ?>
@@ -164,29 +164,30 @@ $docLabels = [
 
                         <?php if (!empty($legalDoc[$key])): ?>
                             <a href="public/<?= htmlspecialchars($legalDoc[$key]) ?>" target="_blank" class="btn btn-outline-info btn-sm mb-2">
-                                <i class="bi bi-file-earmark"></i> View Document
+                                <i class="bi bi-file-earmark"></i> View Current Document
                             </a>
                         <?php endif; ?>
 
                         <?php if ($docComment): ?>
                             <div class="alert alert-danger py-1 px-2 mb-2 small">
-                                <i class="bi bi-chat-left-text me-1"></i><strong>Reason:</strong> <?= htmlspecialchars($docComment) ?>
+                                <i class="bi bi-chat-left-text me-1"></i><strong>Admin Note:</strong> <?= htmlspecialchars($docComment) ?>
                             </div>
                         <?php endif; ?>
 
-                        <?php if ($docStatus === 'flagged'): ?>
-                            <!-- Per-document resubmit form -->
+                        <?php if ($canResubmit): ?>
+                            <!-- Resubmit file upload form -->
                             <form method="post" enctype="multipart/form-data" class="mt-2">
                                 <input type="hidden" name="action" value="resubmit_doc">
                                 <input type="hidden" name="doc_field" value="<?= $key ?>">
+                                <label class="form-label small text-muted mb-1">Select updated file (PDF, JPG, PNG):</label>
                                 <div class="input-group input-group-sm">
                                     <input type="file" class="form-control form-control-sm" name="<?= $key ?>" accept=".pdf,.jpg,.jpeg,.png" required>
-                                    <button type="submit" class="btn btn-warning btn-sm text-dark">
+                                    <button type="submit" class="btn btn-warning btn-sm text-dark fw-bold">
                                         <i class="bi bi-arrow-repeat"></i> Resubmit
                                     </button>
                                 </div>
                             </form>
-                        <?php elseif ($docStatus === 'approved'): ?>
+                        <?php elseif ($isApproved): ?>
                             <div class="small text-success mt-2">
                                 <i class="bi bi-check-circle me-1"></i>Document approved
                             </div>

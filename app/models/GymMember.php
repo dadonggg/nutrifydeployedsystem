@@ -6,27 +6,74 @@ use PDO;
 
 final class GymMember extends Model
 {
+    private static bool $schemaChecked = false;
+
+    public function ensureTableSchema(): void
+    {
+        if (self::$schemaChecked) {
+            return;
+        }
+        self::$schemaChecked = true;
+        try {
+            $check = $this->db()->query("SHOW COLUMNS FROM `gym_members` LIKE 'gym_owner_id'");
+            if ($check->rowCount() === 0) {
+                $this->db()->exec("ALTER TABLE `gym_members` ADD COLUMN `gym_owner_id` INT DEFAULT NULL AFTER `user_id`");
+            }
+        } catch (\Throwable $e) {}
+    }
+
     public function create(
         int $userId, int $appId, string $code, ?int $trainerId,
         string $paymentType = 'regular_monthly', float $paymentAmount = 0.0,
-        ?string $startDate = null, ?string $expirationDate = null
+        ?string $startDate = null, ?string $expirationDate = null,
+        ?int $gymOwnerId = null
     ): int {
         if ($startDate === null) { $startDate = date('Y-m-d'); }
         if ($expirationDate === null) {
             $days = 30;
             $expirationDate = date('Y-m-d', strtotime("+{$days} days"));
         }
-        $stmt = $this->db()->prepare(
-            'INSERT INTO gym_members
-             (user_id, application_id, membership_code, assigned_trainer_id,
-              payment_type, payment_amount, start_date, expiration_date)
-             VALUES (:uid, :aid, :code, :tid, :pt, :pa, :sd, :ed)'
-        );
-        $stmt->execute([
-            ':uid'=>$userId, ':aid'=>$appId, ':code'=>$code, ':tid'=>$trainerId,
-            ':pt'=>$paymentType, ':pa'=>$paymentAmount, ':sd'=>$startDate, ':ed'=>$expirationDate,
-        ]);
-        return (int)$this->db()->lastInsertId();
+
+        // Auto-resolve gymOwnerId from application if not explicitly provided
+        if ($gymOwnerId === null && $appId > 0) {
+            try {
+                $st = $this->db()->prepare('SELECT gym_owner_id FROM membership_applications WHERE id = :id');
+                $st->execute([':id' => $appId]);
+                $foundId = (int)$st->fetchColumn();
+                if ($foundId > 0) {
+                    $gymOwnerId = $foundId;
+                }
+            } catch (\Throwable $e) {}
+        }
+
+        $this->ensureTableSchema();
+
+        try {
+            $stmt = $this->db()->prepare(
+                'INSERT INTO gym_members
+                 (user_id, gym_owner_id, application_id, membership_code, assigned_trainer_id,
+                  payment_type, payment_amount, start_date, expiration_date)
+                 VALUES (:uid, :goid, :aid, :code, :tid, :pt, :pa, :sd, :ed)'
+            );
+            $stmt->execute([
+                ':uid'=>$userId, ':goid'=>$gymOwnerId, ':aid'=>$appId, ':code'=>$code, ':tid'=>$trainerId,
+                ':pt'=>$paymentType, ':pa'=>$paymentAmount, ':sd'=>$startDate, ':ed'=>$expirationDate,
+            ]);
+            return (int)$this->db()->lastInsertId();
+        } catch (\PDOException $e) {
+            // Fallback in case column gym_owner_id couldn't be added
+            $stmt = $this->db()->prepare(
+                'INSERT INTO gym_members
+                 (user_id, application_id, membership_code, assigned_trainer_id,
+                  payment_type, payment_amount, start_date, expiration_date)
+                 VALUES (:uid, :aid, :code, :tid, :pt, :pa, :sd, :ed)'
+            );
+            $stmt->execute([
+                ':uid'=>$userId, ':aid'=>$appId, ':code'=>$code, ':tid'=>$trainerId,
+                ':pt'=>$paymentType, ':pa'=>$paymentAmount, ':sd'=>$startDate, ':ed'=>$expirationDate,
+            ]);
+            return (int)$this->db()->lastInsertId();
+        }
     }
 
     public function findByUserId(int $userId): ?array
@@ -73,8 +120,22 @@ final class GymMember extends Model
         return $row ?: null;
     }
 
-    public function findAll(): array
+    public function findAll(?int $ownerId = null): array
     {
+        $this->ensureTableSchema();
+        if ($ownerId !== null && $ownerId > 0) {
+            $stmt = $this->db()->prepare(
+                'SELECT gm.*, u.fullname, u.email, u.profile_picture_url 
+                 FROM gym_members gm
+                 JOIN users u ON u.id = gm.user_id 
+                 LEFT JOIN membership_applications ma ON ma.id = gm.application_id
+                 WHERE (gm.gym_owner_id = :oid OR ma.gym_owner_id = :oid)
+                 ORDER BY gm.created_at DESC'
+            );
+            $stmt->execute([':oid' => $ownerId]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+
         return $this->db()->query(
             'SELECT gm.*, u.fullname, u.email, u.profile_picture_url FROM gym_members gm
              JOIN users u ON u.id = gm.user_id ORDER BY gm.created_at DESC'
@@ -83,9 +144,36 @@ final class GymMember extends Model
 
     /**
      * Find active members – gracefully handles missing expiration_date column.
+     * Optionally scoped to a specific gym owner.
      */
-    public function findAllActive(): array
+    public function findAllActive(?int $ownerId = null): array
     {
+        $this->ensureTableSchema();
+        if ($ownerId !== null && $ownerId > 0) {
+            try {
+                $stmt = $this->db()->prepare(
+                    'SELECT gm.*, u.fullname, u.email FROM gym_members gm
+                     JOIN users u ON u.id = gm.user_id
+                     LEFT JOIN membership_applications ma ON ma.id = gm.application_id
+                     WHERE (gm.gym_owner_id = :oid OR ma.gym_owner_id = :oid)
+                       AND gm.is_active = 1 AND (gm.expiration_date IS NULL OR gm.expiration_date >= CURDATE())
+                     ORDER BY gm.created_at DESC'
+                );
+                $stmt->execute([':oid' => $ownerId]);
+                return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            } catch (\PDOException $e) {
+                $stmt = $this->db()->prepare(
+                    'SELECT gm.*, u.fullname, u.email FROM gym_members gm
+                     JOIN users u ON u.id = gm.user_id
+                     LEFT JOIN membership_applications ma ON ma.id = gm.application_id
+                     WHERE (gm.gym_owner_id = :oid OR ma.gym_owner_id = :oid)
+                       AND gm.is_active = 1 ORDER BY gm.created_at DESC'
+                );
+                $stmt->execute([':oid' => $ownerId]);
+                return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            }
+        }
+
         try {
             return $this->db()->query(
                 'SELECT gm.*, u.fullname, u.email FROM gym_members gm
@@ -94,7 +182,6 @@ final class GymMember extends Model
                  ORDER BY gm.created_at DESC'
             )->fetchAll(PDO::FETCH_ASSOC);
         } catch (\PDOException $e) {
-            // Fallback if expiration_date column doesn't exist yet
             return $this->db()->query(
                 'SELECT gm.*, u.fullname, u.email FROM gym_members gm
                  JOIN users u ON u.id = gm.user_id
@@ -103,9 +190,24 @@ final class GymMember extends Model
         }
     }
 
-    public function getMonthlyRevenue(?string $monthYear = null): float
+    public function getMonthlyRevenue(?string $monthYear = null, ?int $ownerId = null): float
     {
         if ($monthYear === null) { $monthYear = date('Y-m'); }
+        $this->ensureTableSchema();
+
+        if ($ownerId !== null && $ownerId > 0) {
+            try {
+                $stmt = $this->db()->prepare(
+                    "SELECT COALESCE(SUM(gm.payment_amount),0) as total FROM gym_members gm
+                     LEFT JOIN membership_applications ma ON ma.id = gm.application_id
+                     WHERE (gm.gym_owner_id = :oid OR ma.gym_owner_id = :oid)
+                       AND DATE_FORMAT(gm.created_at, '%Y-%m') = :my"
+                );
+                $stmt->execute([':oid' => $ownerId, ':my' => $monthYear]);
+                return (float)$stmt->fetch(PDO::FETCH_ASSOC)['total'];
+            } catch (\PDOException $e) { return 0.0; }
+        }
+
         try {
             $stmt = $this->db()->prepare(
                 "SELECT COALESCE(SUM(payment_amount),0) as total FROM gym_members
@@ -116,19 +218,39 @@ final class GymMember extends Model
         } catch (\PDOException $e) { return 0.0; }
     }
 
-    public function getRevenueByMonth(int $months = 6): array
+    public function getRevenueByMonth(int $months = 6, ?int $ownerId = null): array
     {
+        $this->ensureTableSchema();
+        $months = max(1, (int)$months);
+        if ($ownerId !== null && $ownerId > 0) {
+            try {
+                $stmt = $this->db()->prepare(
+                    "SELECT DATE_FORMAT(gm.created_at, '%Y-%m') as month,
+                            COALESCE(SUM(gm.payment_amount),0) as total,
+                            COUNT(DISTINCT gm.id) as member_count
+                     FROM gym_members gm
+                     LEFT JOIN membership_applications ma ON ma.id = gm.application_id
+                     WHERE (gm.gym_owner_id = :oid OR ma.gym_owner_id = :oid)
+                       AND gm.created_at >= DATE_SUB(CURDATE(), INTERVAL {$months} MONTH)
+                     GROUP BY DATE_FORMAT(gm.created_at, '%Y-%m')
+                     ORDER BY month DESC"
+                );
+                $stmt->execute([':oid' => $ownerId]);
+                return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            } catch (\PDOException $e) { return []; }
+        }
+
         try {
             $stmt = $this->db()->prepare(
                 "SELECT DATE_FORMAT(created_at, '%Y-%m') as month,
                         COALESCE(SUM(payment_amount),0) as total,
                         COUNT(*) as member_count
                  FROM gym_members
-                 WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL :m MONTH)
+                 WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL {$months} MONTH)
                  GROUP BY DATE_FORMAT(created_at, '%Y-%m')
                  ORDER BY month DESC"
             );
-            $stmt->execute([':m' => $months]);
+            $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (\PDOException $e) { return []; }
     }

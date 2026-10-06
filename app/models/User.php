@@ -133,15 +133,25 @@ final class User extends Model
     {
         try {
             $stmt = $this->db()->prepare('UPDATE users SET role = :role WHERE id = :id');
-            $stmt->execute([':role' => $role, ':id' => $userId]);
-            
-            $rowCount = $stmt->rowCount();
-            if ($rowCount === 0) {
-                error_log("updateRole: No rows affected for user ID $userId, role $role");
+            $success = $stmt->execute([':role' => $role, ':id' => $userId]);
+            if (!$success) {
+                error_log("updateRole: Execute failed for user ID $userId, role $role");
                 return false;
             }
             
-            error_log("updateRole: Successfully updated user ID $userId to role $role");
+            // Verify that the user exists
+            $user = $this->findById($userId);
+            if (!$user) {
+                error_log("updateRole: User ID $userId not found");
+                return false;
+            }
+            
+            // If current user in session is this user, update session role as well
+            if (isset($_SESSION['user_id']) && (int)$_SESSION['user_id'] === $userId && isset($_SESSION['user'])) {
+                $_SESSION['user']['role'] = $role;
+            }
+            
+            error_log("updateRole: Successfully updated/verified user ID $userId with role $role");
             return true;
         } catch (\Exception $e) {
             error_log("updateRole failed for user ID $userId: " . $e->getMessage());

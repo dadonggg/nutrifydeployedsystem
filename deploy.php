@@ -17,32 +17,51 @@ header('Content-Type: text/plain; charset=utf-8');
 ini_set('max_execution_time', '300'); // 5 minutes
 ini_set('memory_limit', '256M');
 
-$repoZipUrl = 'https://github.com/dadonggg/backup-prosposed/archive/refs/heads/main.zip';
+$requestedRepo = $_GET['repo'] ?? 'nutrifydeployedsystem';
+$repoZipUrls = [
+    'https://github.com/dadonggg/nutrifydeployedsystem/archive/refs/heads/main.zip',
+    'https://github.com/dadonggg/backup-prosposed/archive/refs/heads/main.zip',
+];
+if ($requestedRepo === 'backup-prosposed') {
+    $repoZipUrls = array_reverse($repoZipUrls);
+}
+
 $tempZipFile = __DIR__ . '/github_temp_latest.zip';
 $tempExtractDir = __DIR__ . '/github_temp_extract';
 
-echo "🚀 Starting deployment from GitHub...\n";
-echo "Source: $repoZipUrl\n\n";
+echo "🚀 Starting deployment from GitHub...\n\n";
 
 // 1. Download the zip file from GitHub
 echo "📥 Step 1: Downloading latest ZIP from GitHub...\n";
-$ch = curl_init();
-curl_setopt($ch, CURLOPT_URL, $repoZipUrl);
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-curl_setopt($ch, CURLOPT_USERAGENT, 'PHP-Downloader');
-$zipData = curl_exec($ch);
+$zipData = false;
+$activeUrl = '';
+foreach ($repoZipUrls as $url) {
+    echo "Trying: $url ...\n";
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_USERAGENT, 'PHP-Downloader');
+    $res = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    if ($res !== false && $httpCode === 200) {
+        $zipData = $res;
+        $activeUrl = $url;
+        echo "✅ Downloaded from $activeUrl\n";
+        break;
+    }
+}
 
 if ($zipData === false) {
-    die("❌ Failed to download ZIP. Curl error: " . curl_error($ch) . "\n");
+    die("❌ Failed to download ZIP from GitHub repository URLs. Please verify repository is public.\n");
 }
-curl_close($ch);
 
 if (file_put_contents($tempZipFile, $zipData) === false) {
     die("❌ Failed to save ZIP file locally to: $tempZipFile\n");
 }
-echo "✅ ZIP file downloaded successfully (" . round(filesize($tempZipFile) / 1024 / 1024, 2) . " MB).\n\n";
+echo "✅ ZIP file saved successfully (" . round(filesize($tempZipFile) / 1024 / 1024, 2) . " MB).\n\n";
 
 // 2. Extract the zip file
 echo "📦 Step 2: Extracting ZIP file...\n";

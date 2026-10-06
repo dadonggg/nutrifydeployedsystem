@@ -27,23 +27,32 @@ final class MembershipController extends Controller
     {
         $user = $this->requireLogin();
         
-        // Get gym_id from URL parameter
+        $appModel = new MembershipApplication();
+        $existing = $appModel->findByUserId((int)$user['id']);
+        
+        // Get gym_id from URL parameter or fallback to existing application gym
         $gymId = (int)($_GET['gym_id'] ?? 0);
-        if ($gymId === 0) {
-            $this->redirect('membership/gyms');
-        }
-        
-        // Get gym details from legal_documents
         $legalDocModel = new \App\Models\LegalDocument();
-        $gym = $legalDocModel->findById($gymId);
-        
-        if (!$gym || $gym['status'] !== 'verified') {
+        $gym = null;
+
+        if ($gymId > 0) {
+            $gym = $legalDocModel->findById($gymId);
+            if (!$gym || ($gym['status'] ?? '') !== 'verified') {
+                $gym = $legalDocModel->findByUserId($gymId);
+            }
+        } elseif ($existing && !empty($existing['gym_owner_id'])) {
+            $gym = $legalDocModel->findByUserId((int)$existing['gym_owner_id']);
+            if (!$gym) {
+                $gym = $legalDocModel->findById((int)$existing['gym_owner_id']);
+            }
+        }
+
+        // If still no gym found or not verified, redirect to available gyms list
+        if (!$gym || ($gym['status'] ?? '') !== 'verified') {
             $this->redirect('membership/gyms');
         }
         
         $error = ''; $success = '';
-        $appModel = new MembershipApplication();
-        $existing = $appModel->findByUserId((int)$user['id']);
 
         // Load dynamic plans and services for this gym
         $planModel = new MembershipPlan();
@@ -56,8 +65,16 @@ final class MembershipController extends Controller
         // Generate PayMongo payment link if application is verified and payment mode is online
         $paymongoLink = null;
         if ($existing && $existing['status'] === 'verified' && ($existing['payment_mode'] ?? 'cash') === 'online') {
-            $paymongoLink = $this->generatePayMongoLink($existing, (int)$gym['user_id']);
+            try {
+                // Increase execution time for external API call
+                @set_time_limit(30);
+                $paymongoLink = $this->generatePayMongoLink($existing, (int)$gym['user_id']);
+            } catch (\Throwable $e) {
+                error_log('applyAction PayMongo link generation failed: ' . $e->getMessage());
+                $paymongoLink = null;
+            }
         }
+
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $fn = trim((string)($_POST['first_name'] ?? ''));
@@ -173,6 +190,12 @@ final class MembershipController extends Controller
      */
     private function generatePayMongoLink(array $application, int $gymOwnerId): ?string
     {
+        // Skip if curl is not available
+        if (!function_exists('curl_init')) {
+            error_log('PayMongo: curl extension not available');
+            return null;
+        }
+
         // Check if PayMongo is configured for this gym owner
         $paymongoModel = new \App\Models\PayMongoConfig();
         if (!$paymongoModel->tableExists()) {
@@ -185,16 +208,30 @@ final class MembershipController extends Controller
         }
 
         $secretKey = $config['secret_key'];
+        if (empty($secretKey)) {
+            return null;
+        }
+
         $amount = (float)($application['payment_amount'] ?? 0);
+        if ($amount <= 0) {
+            return null;
+        }
+
         $description = 'Gym Membership - ' . ($application['payment_type'] ?? 'Membership');
         $remarks = 'membership_app_' . $application['id'];
 
         // Create PayMongo payment link
         try {
             $curl = curl_init();
+            if ($curl === false) {
+                return null;
+            }
             curl_setopt_array($curl, [
                 CURLOPT_URL => "https://api.paymongo.com/v1/links",
                 CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_CONNECTTIMEOUT => 5,
+                CURLOPT_TIMEOUT => 10,
+                CURLOPT_SSL_VERIFYPEER => false,
                 CURLOPT_HTTPHEADER => [
                     "accept: application/json",
                     "authorization: Basic " . base64_encode($secretKey . ":"),
@@ -213,7 +250,13 @@ final class MembershipController extends Controller
 
             $response = curl_exec($curl);
             $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+            $curlError = curl_error($curl);
             curl_close($curl);
+
+            if ($response === false || !empty($curlError)) {
+                error_log('PayMongo curl error: ' . $curlError);
+                return null;
+            }
 
             if ($httpCode === 200 || $httpCode === 201) {
                 $data = json_decode($response, true);
@@ -221,14 +264,20 @@ final class MembershipController extends Controller
                     // Save payment reference
                     $paymentId = $data['data']['id'] ?? null;
                     if ($paymentId) {
-                        $db = \App\Core\Database::pdo();
-                        $stmt = $db->prepare(
-                            'UPDATE membership_applications SET paymongo_payment_id = ? WHERE id = ?'
-                        );
-                        $stmt->execute([$paymentId, $application['id']]);
+                        try {
+                            $db = \App\Core\Database::pdo();
+                            $stmt = $db->prepare(
+                                'UPDATE membership_applications SET paymongo_payment_id = ? WHERE id = ?'
+                            );
+                            $stmt->execute([$paymentId, $application['id']]);
+                        } catch (\Exception $dbEx) {
+                            error_log('PayMongo: failed to save payment ID: ' . $dbEx->getMessage());
+                        }
                     }
                     return $data['data']['attributes']['checkout_url'];
                 }
+            } else {
+                error_log('PayMongo API returned HTTP ' . $httpCode . ': ' . $response);
             }
         } catch (\Exception $e) {
             // Log error but don't show to user
@@ -237,6 +286,7 @@ final class MembershipController extends Controller
 
         return null;
     }
+
 
     /**
      * Check / reconcile PayMongo payment status for the logged-in user
@@ -269,6 +319,9 @@ final class MembershipController extends Controller
             curl_setopt_array($curl, [
                 CURLOPT_URL => "https://api.paymongo.com/v1/links/" . urlencode($paymentLinkId),
                 CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_CONNECTTIMEOUT => 5,
+                CURLOPT_TIMEOUT => 10,
+                CURLOPT_SSL_VERIFYPEER => false,
                 CURLOPT_HTTPHEADER => [
                     "accept: application/json",
                     "authorization: Basic " . base64_encode($secretKey . ":"),

@@ -9,6 +9,7 @@ final class MemberPayment extends Model
     public function create(int $memberId, string $paymentType, float $amount, string $paymentMethod = 'cash',
                           ?string $transactionId = null, ?string $paymentDate = null, string $description = ''): int
     {
+        $this->ensureTableExists();
         try {
             \App\Core\Database::beginTransaction();
 
@@ -43,49 +44,62 @@ final class MemberPayment extends Model
 
     public function findByMemberId(int $memberId): array
     {
-        $stmt = $this->db()->prepare(
-            'SELECT * FROM member_payments 
-             WHERE member_id = :mid 
-             ORDER BY payment_date DESC, created_at DESC'
-        );
-        $stmt->execute([':mid' => $memberId]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $this->ensureTableExists();
+        try {
+            $stmt = $this->db()->prepare(
+                'SELECT * FROM member_payments 
+                 WHERE member_id = :mid 
+                 ORDER BY payment_date DESC, created_at DESC'
+            );
+            $stmt->execute([':mid' => $memberId]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Exception $e) {
+            return [];
+        }
     }
 
     public function getMemberPaymentSummary(int $memberId): array
     {
-        $stmt = $this->db()->prepare(
-            'SELECT 
-                payment_type,
-                COUNT(*) as payment_count,
-                SUM(amount) as total_amount,
-                MAX(payment_date) as last_payment_date,
-                MIN(payment_date) as first_payment_date
-             FROM member_payments 
-             WHERE member_id = :mid AND payment_status = "completed"
-             GROUP BY payment_type'
-        );
-        $stmt->execute([':mid' => $memberId]);
-        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $this->ensureTableExists();
+        try {
+            $stmt = $this->db()->prepare(
+                'SELECT 
+                    payment_type,
+                    COUNT(*) as payment_count,
+                    SUM(amount) as total_amount,
+                    MAX(payment_date) as last_payment_date,
+                    MIN(payment_date) as first_payment_date
+                 FROM member_payments 
+                 WHERE member_id = :mid AND payment_status = "completed"
+                 GROUP BY payment_type'
+            );
+            $stmt->execute([':mid' => $memberId]);
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Get overall totals
-        $stmt = $this->db()->prepare(
-            'SELECT 
-                COUNT(*) as total_payments,
-                SUM(amount) as total_spent,
-                AVG(amount) as avg_payment,
-                MAX(payment_date) as last_payment,
-                MIN(payment_date) as first_payment
-             FROM member_payments 
-             WHERE member_id = :mid AND payment_status = "completed"'
-        );
-        $stmt->execute([':mid' => $memberId]);
-        $totals = $stmt->fetch(PDO::FETCH_ASSOC);
+            // Get overall totals
+            $stmt = $this->db()->prepare(
+                'SELECT 
+                    COUNT(*) as total_payments,
+                    SUM(amount) as total_spent,
+                    AVG(amount) as avg_payment,
+                    MAX(payment_date) as last_payment,
+                    MIN(payment_date) as first_payment
+                 FROM member_payments 
+                 WHERE member_id = :mid AND payment_status = "completed"'
+            );
+            $stmt->execute([':mid' => $memberId]);
+            $totals = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        return [
-            'by_type' => $results,
-            'totals' => $totals
-        ];
+            return [
+                'by_type' => $results,
+                'totals' => $totals ?: []
+            ];
+        } catch (\Exception $e) {
+            return [
+                'by_type' => [],
+                'totals' => ['total_payments' => 0, 'total_spent' => 0, 'avg_payment' => 0]
+            ];
+        }
     }
 
     public function getMonthlyPayments(int $memberId, int $months = 12): array
@@ -148,25 +162,59 @@ final class MemberPayment extends Model
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function recordMembershipRenewal(int $memberId, float $amount, string $paymentMethod = 'cash',
-                                           ?string $transactionId = null): bool
+    public function ensureTableExists(): void
     {
+        try {
+            $this->db()->exec("
+                CREATE TABLE IF NOT EXISTS `member_payments` (
+                    `id` INT AUTO_INCREMENT PRIMARY KEY,
+                    `member_id` INT NOT NULL,
+                    `payment_type` VARCHAR(50) NOT NULL DEFAULT 'membership',
+                    `amount` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+                    `payment_method` VARCHAR(50) NOT NULL DEFAULT 'cash',
+                    `payment_status` VARCHAR(50) NOT NULL DEFAULT 'completed',
+                    `transaction_id` VARCHAR(100) NULL,
+                    `payment_date` DATE NULL,
+                    `description` VARCHAR(255) NULL,
+                    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    INDEX `idx_mp_member` (`member_id`),
+                    INDEX `idx_mp_date` (`payment_date`),
+                    INDEX `idx_mp_status` (`payment_status`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+            ");
+        } catch (\Throwable $e) {
+            // Table creation safeguard
+        }
+    }
+
+    public function recordMembershipRenewal(int $memberId, float $amount, string $paymentMethod = 'cash',
+                                           ?string $transactionId = null, int $days = 30): bool
+    {
+        $this->ensureTableExists();
         try {
             \App\Core\Database::beginTransaction();
 
             // Create payment record
-            $paymentId = $this->create($memberId, 'membership', $amount, $paymentMethod, $transactionId, null, 'Membership renewal');
+            $paymentId = $this->create($memberId, 'membership', $amount, $paymentMethod, $transactionId, null, 'Membership renewal (' . $days . ' days)');
 
             if ($paymentId > 0) {
-                // Update member's expiration date (extend by 30 days from current expiration)
+                // Update member's expiration date:
+                // If expiration_date is past/null, extend $days from CURDATE().
+                // If expiration_date is in the future, add $days to current expiration_date.
                 $stmt = $this->db()->prepare(
                     'UPDATE gym_members 
-                     SET expiration_date = DATE_ADD(COALESCE(expiration_date, CURDATE()), INTERVAL 30 DAY),
-                         renewal_date = CURDATE(),
-                         membership_status = "active"
+                     SET expiration_date = DATE_ADD(
+                         CASE 
+                             WHEN expiration_date IS NULL OR expiration_date < CURDATE() THEN CURDATE() 
+                             ELSE expiration_date 
+                         END, 
+                         INTERVAL :days DAY
+                     ),
+                     renewal_date = CURDATE(),
+                     is_active = 1
                      WHERE id = :mid'
                 );
-                $stmt->execute([':mid' => $memberId]);
+                $stmt->execute([':days' => $days, ':mid' => $memberId]);
 
                 \App\Core\Database::commit();
                 return true;

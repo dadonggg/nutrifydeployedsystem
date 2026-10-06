@@ -50,13 +50,32 @@ final class GymownerController extends Controller
         header('Expires: 0');
         
         $user = $this->requireLogin();
-        if ($user['role'] !== 'customer') { $this->redirect('home/index'); }
+        // Block gym owners and admins (they don't need to apply)
+        // Allow customers, fitness_enthusiast, and any other non-privileged role who may have a pending application
+        $blockedRoles = ['gym_owner', 'admin', 'administrative_officer', 'trainer', 'maintenance', 'marketing_officer'];
+        if (in_array($user['role'], $blockedRoles, true)) { $this->redirect('home/index'); }
 
         $error = ''; $success = '';
         $docModel = new LegalDocument();
         
         // Always fetch fresh data from database
         $existing = $docModel->findByUserId((int)$user['id']);
+
+        // Auto-heal: If document is already verified, immediately ensure role is gym_owner and redirect to dashboard
+        if ($existing && $existing['status'] === 'verified') {
+            if ($user['role'] !== 'gym_owner') {
+                (new User())->updateRole((int)$user['id'], 'gym_owner');
+            }
+            $this->redirect('home/index');
+            return;
+        }
+
+        $docFieldLabels = [
+            'cert_registration' => 'Certificate of Registration',
+            'mayors_permit'     => "Mayor's Permit",
+            'business_name_cert'=> 'Business Name Certificate',
+            'fire_safety_cert'  => 'Fire Safety Certificate',
+        ];
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $action = $_POST['action'] ?? 'submit_all';
@@ -80,8 +99,20 @@ final class GymownerController extends Controller
                         if (move_uploaded_file($_FILES[$docField]['tmp_name'], $uploadDir . $filename)) {
                             $path = 'uploads/legal_documents/' . $filename;
                             $docModel->resubmitSingleDoc((int)$existing['id'], $docField, $path);
-                            $docModel->recomputeOverallStatus((int)$existing['id']);
-                            $success = 'Document resubmitted. Waiting for admin review.';
+                            $labelName = $docFieldLabels[$docField] ?? $docField;
+                            $success = $labelName . ' resubmitted successfully. Waiting for admin review.';
+
+                            // Notify all admins of the resubmission
+                            $admins = (new User())->findByRole('admin');
+                            foreach ($admins as $adm) {
+                                $this->notify(
+                                    (int)$adm['id'],
+                                    'Document Resubmitted',
+                                    ($user['fullname'] ?? 'Applicant') . " has resubmitted {$labelName} for review.",
+                                    'info',
+                                    'admin/reviewlegal?id=' . $existing['id']
+                                );
+                            }
                         } else {
                             $error = 'Failed to upload file.';
                         }
@@ -167,10 +198,20 @@ final class GymownerController extends Controller
                             $logoPath = $gymLogo !== '' ? $gymLogo : ($existing['gym_logo'] ?? '');
                             $docModel->updateDocumentsAndInfo((int)$existing['id'], $paths['cert_registration'], $paths['mayors_permit'], $paths['business_name_cert'], $paths['fire_safety_cert'], $gymName, $logoPath, $gymAddress, $streetAddress, $province, $cityMunicipality, $barangay, $maintenanceCount, $trainerCount, $otherStaffJson);
                             $success = 'Documents resubmitted successfully. Waiting for admin review.';
+
+                            $admins = (new User())->findByRole('admin');
+                            foreach ($admins as $adm) {
+                                $this->notify((int)$adm['id'], 'Application Resubmitted', ($user['fullname'] ?? 'Applicant') . ' has resubmitted their Gym Owner application.', 'info', 'admin/reviewlegal?id=' . $existing['id']);
+                            }
                         } elseif (!$existing) {
                             // Allowed: first-time submission — create a single new record
-                            $docModel->create((int)$user['id'], $paths['cert_registration'], $paths['mayors_permit'], $paths['business_name_cert'], $paths['fire_safety_cert'], $gymName, $gymLogo, $gymAddress, $maintenanceCount, $trainerCount, $streetAddress, $province, $cityMunicipality, $barangay, $otherStaffJson);
+                            $newId = $docModel->create((int)$user['id'], $paths['cert_registration'], $paths['mayors_permit'], $paths['business_name_cert'], $paths['fire_safety_cert'], $gymName, $gymLogo, $gymAddress, $maintenanceCount, $trainerCount, $streetAddress, $province, $cityMunicipality, $barangay, $otherStaffJson);
                             $success = 'Application submitted! Waiting for admin review.';
+
+                            $admins = (new User())->findByRole('admin');
+                            foreach ($admins as $adm) {
+                                $this->notify((int)$adm['id'], 'New Gym Owner Application', ($user['fullname'] ?? 'Applicant') . ' submitted an application for ' . $gymName . '.', 'info', 'admin/reviewlegal?id=' . $newId);
+                            }
                         } else {
                             // Block: already has an active application (pending or verified)
                             $error = 'You already have an active application (Status: ' . ucfirst($existing['status']) . '). Please wait for the admin to review your existing submission.';
@@ -200,7 +241,7 @@ final class GymownerController extends Controller
     public function membershipsAction(): void
     {
         $user = $this->requireGymOwner();
-        $apps = (new MembershipApplication())->findAll();
+        $apps = (new MembershipApplication())->findAll((int)$user['id']);
         $trainers = (new Employee())->findAvailableTrainers();
         $this->view('gymowner/memberships', ['user' => $user, 'apps' => $apps, 'trainers' => $trainers]);
     }
@@ -225,7 +266,7 @@ final class GymownerController extends Controller
                 $paymentType = $app['payment_type'] ?? 'regular_monthly';
                 $paymentAmount = round((float)($app['payment_amount'] ?? 0), 2);
                 $code = GymMember::generateCode();
-                (new GymMember())->create((int)$app['user_id'], $id, $code, $trainerId, $paymentType, $paymentAmount);
+                (new GymMember())->create((int)$app['user_id'], $id, $code, $trainerId, $paymentType, $paymentAmount, null, null, (int)$user['id']);
                 $appModel->updateStatus($id, 'approved', 'Membership approved. Code: ' . $code, (int)$user['id']);
                 $this->notify((int)$app['user_id'], 'Membership Approved!', 'Your membership code: ' . $code, 'success', 'membership/verifycode');
                 if ($trainerId) { 
@@ -261,14 +302,14 @@ final class GymownerController extends Controller
     public function membersAction(): void
     {
         $user = $this->requireGymOwner();
-        $members = (new GymMember())->findAll();
+        $members = (new GymMember())->findAll((int)$user['id']);
         $this->view('gymowner/members', ['user' => $user, 'members' => $members]);
     }
 
     public function attendanceAction(): void
     {
         $user = $this->requireGymOwner();
-        $logs = (new AttendanceLog())->findAll();
+        $logs = (new AttendanceLog())->findAll((int)$user['id']);
         $this->view('gymowner/attendance', ['user' => $user, 'logs' => $logs]);
     }
 

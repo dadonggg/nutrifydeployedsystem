@@ -837,6 +837,7 @@ final class MemberController extends Controller
         $member = $data['member'];
 
         $paymentModel = new MemberPayment();
+        $paymentModel->ensureTableExists();
         $error = ''; $success = '';
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -844,17 +845,19 @@ final class MemberController extends Controller
 
             if ($action === 'renew_membership') {
                 $amount = (float)($_POST['amount'] ?? 0);
-                $paymentMethod = $_POST['payment_method'] ?? 'cash';
+                $days = (int)($_POST['duration_days'] ?? 30);
+                $paymentMethod = trim((string)($_POST['payment_method'] ?? 'cash'));
+                if ($days <= 0) { $days = 30; }
 
                 if ($amount <= 0) {
-                    $error = 'Please enter a valid payment amount.';
+                    $error = 'Please select a valid membership plan or enter a renewal amount.';
                 } else {
-                    if ($paymentModel->recordMembershipRenewal((int)$member['id'], $amount, $paymentMethod)) {
-                        $success = 'Membership renewed successfully!';
+                    if ($paymentModel->recordMembershipRenewal((int)$member['id'], $amount, $paymentMethod, null, $days)) {
+                        $success = "Membership renewed successfully! Your access has been extended by {$days} days.";
                         // Refresh member data
                         $member = (new GymMember())->findByUserId((int)$user['id']);
                     } else {
-                        $error = 'Failed to process renewal.';
+                        $error = 'Failed to process membership renewal. Please try again.';
                     }
                 }
             }
@@ -870,7 +873,7 @@ final class MemberController extends Controller
         $daysUntilExpiry = null;
         if ($member['expiration_date']) {
             $expiryDate = new \DateTime($member['expiration_date']);
-            $today = new \DateTime();
+            $today = new \DateTime('today');
             $diff = $today->diff($expiryDate);
             
             if ($expiryDate < $today) {
@@ -881,9 +884,32 @@ final class MemberController extends Controller
             }
         }
 
+        // Gym details & membership plans
+        $gymOwnerId = $this->getGymOwnerIdForMember($member);
+        $gym = null;
+        $plans = [];
+        if ($gymOwnerId > 0) {
+            $legalDocModel = new \App\Models\LegalDocument();
+            $gym = $legalDocModel->findByUserId($gymOwnerId);
+            $planModel = new \App\Models\MembershipPlan();
+            if ($planModel->tableExists()) {
+                $plans = $planModel->findByOwnerId($gymOwnerId);
+            }
+        }
+
+        // Assigned trainer info
+        $assignedTrainer = null;
+        if (!empty($member['assigned_trainer_id'])) {
+            $empModel = new \App\Models\Employee();
+            $assignedTrainer = $empModel->findById((int)$member['assigned_trainer_id']);
+        }
+
         $this->view('member/membership', [
             'user' => $user,
             'member' => $member,
+            'gym' => $gym,
+            'plans' => $plans,
+            'assignedTrainer' => $assignedTrainer,
             'paymentHistory' => $paymentHistory,
             'paymentSummary' => $paymentSummary,
             'monthlyPayments' => $monthlyPayments,
@@ -1007,6 +1033,9 @@ final class MemberController extends Controller
             curl_setopt_array($curl, [
                 CURLOPT_URL => "https://api.paymongo.com/v1/links",
                 CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_CONNECTTIMEOUT => 5,
+                CURLOPT_TIMEOUT => 10,
+                CURLOPT_SSL_VERIFYPEER => false,
                 CURLOPT_HTTPHEADER => [
                     "accept: application/json",
                     "authorization: Basic " . base64_encode($secretKey . ":"),

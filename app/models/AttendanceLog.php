@@ -50,8 +50,21 @@ final class AttendanceLog extends Model
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function findAll(): array
+    public function findAll(?int $ownerId = null): array
     {
+        if ($ownerId !== null && $ownerId > 0) {
+            $stmt = $this->db()->prepare(
+                'SELECT al.*, gm.membership_code, u.fullname, u.profile_picture_url FROM attendance_log al
+                 JOIN gym_members gm ON gm.id = al.member_id
+                 LEFT JOIN membership_applications ma ON ma.id = gm.application_id
+                 JOIN users u ON u.id = gm.user_id
+                 WHERE (gm.gym_owner_id = :oid OR ma.gym_owner_id = :oid)
+                 ORDER BY al.check_in DESC'
+            );
+            $stmt->execute([':oid' => $ownerId]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+
         return $this->db()->query(
             'SELECT al.*, gm.membership_code, u.fullname, u.profile_picture_url FROM attendance_log al
              JOIN gym_members gm ON gm.id = al.member_id

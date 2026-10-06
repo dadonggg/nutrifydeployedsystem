@@ -7,14 +7,27 @@ require __DIR__ . '/../partials/header.php';
 <div class="mb-4">
     <a href="index.php?r=admin/legalreviews" class="btn btn-outline-secondary btn-sm mb-2"><i class="bi bi-arrow-left"></i> Back</a>
     <h1 class="h3 mb-1">Review Application #<?= $doc['id'] ?></h1>
-    <p class="text-muted">Applicant: <strong><?= htmlspecialchars($applicant['fullname'] ?? '') ?></strong> (<?= htmlspecialchars($applicant['email'] ?? '') ?>)</p>
+    <p class="text-muted">Applicant: <strong><?= htmlspecialchars($applicant['fullname'] ?? '') ?></strong> (<?= htmlspecialchars($applicant['email'] ?? '') ?>) &bull; Role: <span class="badge <?= ($applicant['role'] ?? '') === 'gym_owner' ? 'bg-success' : 'bg-primary' ?>"><?= htmlspecialchars(ucwords(str_replace('_', ' ', $applicant['role'] ?? 'user'))) ?></span></p>
 </div>
 
 <?php if (!empty($error)): ?>
     <div class="alert alert-danger"><i class="bi bi-exclamation-triangle me-1"></i><?= htmlspecialchars($error) ?></div>
 <?php endif; ?>
 <?php if (!empty($success)): ?>
-    <div class="alert alert-success"><i class="bi bi-check-circle me-1"></i><?= htmlspecialchars($success) ?></div>
+    <div class="alert alert-success">
+        <i class="bi bi-check-circle me-1"></i><?= $success ?>
+        <?php
+        // Re-fetch applicant from DB to confirm live role
+        $liveApplicant = (new \App\Models\User())->findById((int)$doc['user_id']);
+        $liveRole = $liveApplicant['role'] ?? 'unknown';
+        ?>
+        <br><small>Live role in database: <strong class="badge <?= $liveRole === 'gym_owner' ? 'bg-success' : 'bg-warning text-dark' ?>"><?= htmlspecialchars(ucwords(str_replace('_', ' ', $liveRole))) ?></strong></small>
+        <?php if ($liveRole !== 'gym_owner'): ?>
+        <br><small class="text-danger"><i class="bi bi-exclamation-triangle"></i> Role was NOT updated. Use the "Convert to Gym Owner" button below to manually convert.</small>
+        <?php else: ?>
+        <br><small class="text-success"><i class="bi bi-check-circle"></i> The applicant just needs to refresh their page or go to <strong>home/index</strong> — no logout required.</small>
+        <?php endif; ?>
+    </div>
 <?php endif; ?>
 
 <?php
@@ -212,12 +225,12 @@ $docFields = [
                         
                         <button type="submit" name="action" value="verify" class="btn btn-success btn-sm" 
                                 <?= $hasFlaggedDocs ? 'disabled title="Cannot verify while documents are flagged: ' . htmlspecialchars(implode(', ', $flaggedDocsList)) . '"' : '' ?>>
-                            <i class="bi bi-check-circle"></i> Verify All
+                            <i class="bi bi-check-circle"></i> Verify All & Convert to Gym Owner
                         </button>
                         
                         <button type="submit" name="action" value="resubmit" class="btn btn-warning btn-sm text-dark"><i class="bi bi-arrow-repeat"></i> Request Resubmit</button>
                         <button type="submit" name="action" value="reject" class="btn btn-danger btn-sm"><i class="bi bi-x-circle"></i> Reject</button>
-                        <?php if ($doc['status'] === 'verified'): ?>
+                        <?php if (($applicant['role'] ?? '') !== 'gym_owner'): ?>
                             <button type="submit" name="action" value="convert" class="btn btn-primary btn-sm"><i class="bi bi-person-check"></i> Convert to Gym Owner</button>
                         <?php endif; ?>
                     </div>

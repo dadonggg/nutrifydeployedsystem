@@ -453,8 +453,8 @@ $daysOfWeek = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Su
 
 .mb-routine-cards {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-    gap: .85rem;
+    grid-template-columns: repeat(auto-fill, minmax(235px, 1fr));
+    gap: .95rem;
     margin-bottom: 1rem;
 }
 
@@ -462,31 +462,36 @@ $daysOfWeek = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Su
     background: #ffffff;
     border: 1.5px solid #e2e8f0;
     border-radius: 12px;
-    padding: .95rem 1rem;
+    padding: 1rem 1.05rem;
     cursor: pointer;
     transition: all .2s ease;
     text-align: left;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    height: 100%;
+    min-height: 155px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    position: relative;
+    overflow: hidden;
 }
 
 .mb-routine-card:hover {
-    border-color: #4CAF50;
+    border-color: #1B6B2A;
     background: #f0fdf4;
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(27,107,42,0.1);
+    box-shadow: 0 6px 16px rgba(27,107,42,0.12);
 }
 
 .mb-routine-card.active {
-    background: linear-gradient(135deg, #f0fdf4 0%, #dcfee4 100%);
+    background: linear-gradient(135deg, #f0fdf4 0%, #e6f9eb 100%);
     border-color: #1B6B2A;
-    box-shadow: 0 4px 14px rgba(27,107,42,0.2);
+    box-shadow: 0 4px 16px rgba(27,107,42,0.22);
 }
 
 .mb-routine-card .routine-title {
     font-weight: 700;
-    font-size: .88rem;
+    font-size: .9rem;
     color: #1B6B2A;
     margin-bottom: .25rem;
     display: flex;
@@ -497,7 +502,32 @@ $daysOfWeek = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Su
 .mb-routine-card .routine-desc {
     font-size: .78rem;
     color: #64748b;
-    line-height: 1.4;
+    line-height: 1.35;
+    margin-bottom: .35rem;
+}
+
+.mb-pill {
+    font-size: .68rem !important;
+    font-weight: 600 !important;
+    padding: .22rem .5rem !important;
+    border-radius: 6px !important;
+    white-space: nowrap !important;
+    display: inline-flex !important;
+    align-items: center !important;
+}
+
+.mb-routine-focus {
+    font-size: .72rem;
+    color: #475569;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: .35rem .55rem;
+    margin-top: .6rem;
+    line-height: 1.35;
+    word-break: normal;
+    overflow-wrap: break-word;
+    display: block;
 }
 
 .mb-day-pills {
@@ -1092,98 +1122,132 @@ $daysOfWeek = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Su
             </div>
             <div class="mb-routine-cards" id="mb-preset-cards">
                 <div class="mb-routine-card" onclick="mbSelectRoutineCard(this, 'ppl')">
-                    <div class="routine-title">
-                        <span>⚡ Push / Pull / Legs</span>
-                        <i class="bi bi-arrow-right-short fs-5"></i>
+                    <div>
+                        <div class="routine-title">
+                            <span>⚡ Push / Pull / Legs</span>
+                            <i class="bi bi-arrow-right-short fs-5 text-success"></i>
+                        </div>
+                        <div class="routine-desc">6 days/week, push-pull-legs split</div>
+                        <div class="d-flex flex-wrap gap-1 mt-1">
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle mb-pill">🔥 Cutting</span>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle mb-pill">💪 Bulking</span>
+                        </div>
                     </div>
-                    <div class="routine-desc">6 days/week, push-pull-legs split</div>
-                    <div class="d-flex flex-wrap gap-1 mt-2">
-                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle" style="font-size:.65rem;">🔥 Cutting</span>
-                        <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size:.65rem;">💪 Bulking</span>
-                        <span class="badge bg-secondary-subtle text-secondary border" style="font-size:.65rem;">Focus: Chest · Back · Legs · Shoulders · Arms</span>
+                    <div class="mb-routine-focus">
+                        <i class="bi bi-bullseye me-1 text-success"></i><strong>Focus:</strong> Chest · Back · Legs · Shoulders · Arms
                     </div>
                 </div>
                 <div class="mb-routine-card" onclick="mbSelectRoutineCard(this, 'upper_lower')">
-                    <div class="routine-title">
-                        <span>⚡ Upper / Lower</span>
-                        <i class="bi bi-arrow-right-short fs-5"></i>
+                    <div>
+                        <div class="routine-title">
+                            <span>⚡ Upper / Lower</span>
+                            <i class="bi bi-arrow-right-short fs-5 text-success"></i>
+                        </div>
+                        <div class="routine-desc">4 days/week, upper &amp; lower body</div>
+                        <div class="d-flex flex-wrap gap-1 mt-1">
+                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle mb-pill">⚖️ Maintaining</span>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle mb-pill">💪 Bulking</span>
+                        </div>
                     </div>
-                    <div class="routine-desc">4 days/week, upper &amp; lower body</div>
-                    <div class="d-flex flex-wrap gap-1 mt-2">
-                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size:.65rem;">⚖️ Maintaining</span>
-                        <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size:.65rem;">💪 Bulking</span>
-                        <span class="badge bg-secondary-subtle text-secondary border" style="font-size:.65rem;">Focus: Compound strength + muscle balance</span>
+                    <div class="mb-routine-focus">
+                        <i class="bi bi-bullseye me-1 text-success"></i><strong>Focus:</strong> Compound strength + muscle balance
                     </div>
                 </div>
                 <div class="mb-routine-card" onclick="mbSelectRoutineCard(this, 'full_body')">
-                    <div class="routine-title">
-                        <span>⚡ Full Body 3-Day</span>
-                        <i class="bi bi-arrow-right-short fs-5"></i>
+                    <div>
+                        <div class="routine-title">
+                            <span>⚡ Full Body 3-Day</span>
+                            <i class="bi bi-arrow-right-short fs-5 text-success"></i>
+                        </div>
+                        <div class="routine-desc">3 days/week, full body compound workout</div>
+                        <div class="d-flex flex-wrap gap-1 mt-1">
+                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle mb-pill">⚖️ Maintaining</span>
+                            <span class="badge bg-info-subtle text-info border border-info-subtle mb-pill">🌱 Beginner Friendly</span>
+                        </div>
                     </div>
-                    <div class="routine-desc">3 days/week, full body compound workout</div>
-                    <div class="d-flex flex-wrap gap-1 mt-2">
-                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size:.65rem;">⚖️ Maintaining</span>
-                        <span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size:.65rem;">🌱 Beginner Friendly</span>
-                        <span class="badge bg-secondary-subtle text-secondary border" style="font-size:.65rem;">Focus: Squats · Press · Rows</span>
+                    <div class="mb-routine-focus">
+                        <i class="bi bi-bullseye me-1 text-success"></i><strong>Focus:</strong> Squats · Press · Rows
                     </div>
                 </div>
                 <div class="mb-routine-card" onclick="mbSelectRoutineCard(this, 'bro_split')">
-                    <div class="routine-title">
-                        <span>⚡ Bro Split</span>
-                        <i class="bi bi-arrow-right-short fs-5"></i>
+                    <div>
+                        <div class="routine-title">
+                            <span>⚡ Bro Split</span>
+                            <i class="bi bi-arrow-right-short fs-5 text-success"></i>
+                        </div>
+                        <div class="routine-desc">5 days/week, body part split</div>
+                        <div class="d-flex flex-wrap gap-1 mt-1">
+                            <span class="badge bg-success-subtle text-success border border-success-subtle mb-pill">💪 Bulking</span>
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle mb-pill">🔥 Hypertrophy</span>
+                        </div>
                     </div>
-                    <div class="routine-desc">5 days/week, body part split</div>
-                    <div class="d-flex flex-wrap gap-1 mt-2">
-                        <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size:.65rem;">💪 Bulking</span>
-                        <span class="badge bg-secondary-subtle text-secondary border" style="font-size:.65rem;">Focus: One muscle group per day</span>
+                    <div class="mb-routine-focus">
+                        <i class="bi bi-bullseye me-1 text-success"></i><strong>Focus:</strong> One muscle group per day
                     </div>
                 </div>
                 <div class="mb-routine-card" onclick="mbSelectRoutineCard(this, 'dumbbells_only')">
-                    <div class="routine-title">
-                        <span>⚡ Dumbbells &amp; Bench</span>
-                        <i class="bi bi-arrow-right-short fs-5"></i>
+                    <div>
+                        <div class="routine-title">
+                            <span>⚡ Dumbbells &amp; Bench</span>
+                            <i class="bi bi-arrow-right-short fs-5 text-success"></i>
+                        </div>
+                        <div class="routine-desc">3 days/week, dumbbell routine</div>
+                        <div class="d-flex flex-wrap gap-1 mt-1">
+                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle mb-pill">⚖️ Maintaining</span>
+                            <span class="badge bg-info-subtle text-info border border-info-subtle mb-pill">🏠 Minimal Equip</span>
+                        </div>
                     </div>
-                    <div class="routine-desc">3 days/week, dumbbell routine</div>
-                    <div class="d-flex flex-wrap gap-1 mt-2">
-                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size:.65rem;">⚖️ Maintaining</span>
-                        <span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size:.65rem;">🏠 Home / Minimal Equipment</span>
-                        <span class="badge bg-secondary-subtle text-secondary border" style="font-size:.65rem;">Focus: Full body with dumbbells</span>
+                    <div class="mb-routine-focus">
+                        <i class="bi bi-bullseye me-1 text-success"></i><strong>Focus:</strong> Full body with dumbbells
                     </div>
                 </div>
                 <div class="mb-routine-card" onclick="mbSelectRoutineCard(this, 'hiit_cardio')">
-                    <div class="routine-title">
-                        <span>⚡ HIIT + Cardio Cut</span>
-                        <i class="bi bi-arrow-right-short fs-5"></i>
+                    <div>
+                        <div class="routine-title">
+                            <span>⚡ HIIT + Cardio Cut</span>
+                            <i class="bi bi-arrow-right-short fs-5 text-success"></i>
+                        </div>
+                        <div class="routine-desc">5 days/week, fat burning + cardio</div>
+                        <div class="d-flex flex-wrap gap-1 mt-1">
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle mb-pill">🔥 Cutting</span>
+                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle mb-pill">⚡ High Energy</span>
+                        </div>
                     </div>
-                    <div class="routine-desc">5 days/week, fat burning + cardio</div>
-                    <div class="d-flex flex-wrap gap-1 mt-2">
-                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle" style="font-size:.65rem;">🔥 Cutting</span>
-                        <span class="badge bg-secondary-subtle text-secondary border" style="font-size:.65rem;">Focus: Fat loss, cardio endurance, metabolic</span>
+                    <div class="mb-routine-focus">
+                        <i class="bi bi-bullseye me-1 text-success"></i><strong>Focus:</strong> Fat loss, cardio endurance, metabolic
                     </div>
                 </div>
                 <div class="mb-routine-card" onclick="mbSelectRoutineCard(this, 'powerlifting')">
-                    <div class="routine-title">
-                        <span>⚡ Powerlifting 4-Day</span>
-                        <i class="bi bi-arrow-right-short fs-5"></i>
+                    <div>
+                        <div class="routine-title">
+                            <span>⚡ Powerlifting 4-Day</span>
+                            <i class="bi bi-arrow-right-short fs-5 text-success"></i>
+                        </div>
+                        <div class="routine-desc">4 days/week, heavy compound lifts</div>
+                        <div class="d-flex flex-wrap gap-1 mt-1">
+                            <span class="badge bg-success-subtle text-success border border-success-subtle mb-pill">💪 Bulking</span>
+                            <span class="badge border mb-pill" style="background:#f3e5ff !important; color:#7b1fa2 !important; border-color:#ce93d8 !important;">🏋️ Advanced</span>
+                        </div>
                     </div>
-                    <div class="routine-desc">4 days/week, heavy compound lifts</div>
-                    <div class="d-flex flex-wrap gap-1 mt-2">
-                        <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size:.65rem;">💪 Bulking</span>
-                        <span class="badge bg-purple-subtle text-purple border" style="font-size:.65rem; background:#f3e5ff !important; color:#7b1fa2 !important; border-color:#ce93d8 !important;">🏋️ Advanced</span>
-                        <span class="badge bg-secondary-subtle text-secondary border" style="font-size:.65rem;">Focus: Squat · Bench · Deadlift · OHP</span>
+                    <div class="mb-routine-focus">
+                        <i class="bi bi-bullseye me-1 text-success"></i><strong>Focus:</strong> Squat · Bench · Deadlift · OHP
                     </div>
                 </div>
                 <div class="mb-routine-card" onclick="mbSelectRoutineCard(this, 'calisthenics')">
-                    <div class="routine-title">
-                        <span>⚡ Calisthenics / Bodyweight</span>
-                        <i class="bi bi-arrow-right-short fs-5"></i>
+                    <div>
+                        <div class="routine-title">
+                            <span>⚡ Calisthenics</span>
+                            <i class="bi bi-arrow-right-short fs-5 text-success"></i>
+                        </div>
+                        <div class="routine-desc">4 days/week, no equipment needed</div>
+                        <div class="d-flex flex-wrap gap-1 mt-1">
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle mb-pill">🔥 Cutting</span>
+                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle mb-pill">⚖️ Maintaining</span>
+                            <span class="badge bg-info-subtle text-info border border-info-subtle mb-pill">🏠 Bodyweight</span>
+                        </div>
                     </div>
-                    <div class="routine-desc">4 days/week, no equipment needed</div>
-                    <div class="d-flex flex-wrap gap-1 mt-2">
-                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle" style="font-size:.65rem;">🔥 Cutting</span>
-                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size:.65rem;">⚖️ Maintaining</span>
-                        <span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size:.65rem;">🏠 Zero Equipment</span>
-                        <span class="badge bg-secondary-subtle text-secondary border" style="font-size:.65rem;">Focus: Push-ups · Pulls · Core · Mobility</span>
+                    <div class="mb-routine-focus">
+                        <i class="bi bi-bullseye me-1 text-success"></i><strong>Focus:</strong> Push-ups · Pulls · Core · Mobility
                     </div>
                 </div>
             </div>

@@ -21,12 +21,56 @@ final class MembershipApplication extends Model
         }
     }
 
+    private static bool $schemaChecked = false;
+
+    public function ensureTableSchema(): void
+    {
+        if (self::$schemaChecked) {
+            return;
+        }
+        self::$schemaChecked = true;
+
+        try {
+            $cols = [
+                'gym_owner_id'          => 'INT DEFAULT NULL',
+                'first_name'            => 'VARCHAR(100) DEFAULT NULL',
+                'last_name'             => 'VARCHAR(100) DEFAULT NULL',
+                'middle_initial'        => 'VARCHAR(10) DEFAULT NULL',
+                'phone_number'          => 'VARCHAR(50) DEFAULT NULL',
+                'preferred_trainer_id'  => 'INT DEFAULT NULL',
+                'payment_type'          => 'VARCHAR(255) DEFAULT NULL',
+                'membership_plan_id'    => 'INT DEFAULT NULL',
+                'training_package_id'   => 'INT DEFAULT NULL',
+                'service_id'            => 'INT DEFAULT NULL',
+                'payment_amount'        => 'DECIMAL(10,2) DEFAULT 0.00',
+                'payment_mode'          => "VARCHAR(50) DEFAULT 'cash'",
+                'payment_status'        => "VARCHAR(50) DEFAULT 'pending'",
+                'paymongo_payment_id'   => 'VARCHAR(255) DEFAULT NULL',
+                'payment_submitted_at'  => 'DATETIME DEFAULT NULL',
+                'status'                => "VARCHAR(50) DEFAULT 'pending'",
+                'admin_feedback'        => 'TEXT DEFAULT NULL',
+                'reviewer_id'           => 'INT DEFAULT NULL',
+                'student_proof'         => 'VARCHAR(500) DEFAULT NULL',
+            ];
+
+            foreach ($cols as $col => $type) {
+                $check = $this->db()->query("SHOW COLUMNS FROM `membership_applications` LIKE '$col'");
+                if ($check->rowCount() === 0) {
+                    $this->db()->exec("ALTER TABLE `membership_applications` ADD COLUMN `$col` $type");
+                }
+            }
+        } catch (\Exception $e) {
+            // Graceful fallback
+        }
+    }
+
     /**
      * Check if user already has an active application (pending/verified/approved).
      * Prevents duplicate membership applications.
      */
     public function hasActiveApplication(int $userId): bool
     {
+        $this->ensureTableSchema();
         $stmt = $this->db()->prepare(
             "SELECT COUNT(*) FROM membership_applications
              WHERE user_id = :uid AND status IN ('pending','verified','approved')"
@@ -45,6 +89,7 @@ final class MembershipApplication extends Model
         string $paymentType = 'regular_monthly',
         ?string $studentProof = null
     ): int {
+        $this->ensureTableSchema();
         $amount = self::getPriceForType($paymentType);
         $stmt = $this->db()->prepare(
             'INSERT INTO membership_applications
@@ -82,6 +127,7 @@ final class MembershipApplication extends Model
         string $paymentMode,
         int $gymOwnerId
     ): int {
+        $this->ensureTableSchema();
         $stmt = $this->db()->prepare(
             'INSERT INTO membership_applications
              (user_id, gym_owner_id, first_name, last_name, middle_initial, phone_number,
@@ -121,6 +167,7 @@ final class MembershipApplication extends Model
         string $paymentMode,
         int $gymOwnerId
     ): int {
+        $this->ensureTableSchema();
         $stmt = $this->db()->prepare(
             'INSERT INTO membership_applications
              (user_id, gym_owner_id, first_name, last_name, middle_initial, phone_number,
@@ -147,6 +194,7 @@ final class MembershipApplication extends Model
 
     public function findByUserId(int $userId): ?array
     {
+        $this->ensureTableSchema();
         $stmt = $this->db()->prepare('SELECT * FROM membership_applications WHERE user_id = :uid ORDER BY id DESC LIMIT 1');
         $stmt->execute([':uid' => $userId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -155,6 +203,7 @@ final class MembershipApplication extends Model
 
     public function findById(int $id): ?array
     {
+        $this->ensureTableSchema();
         $stmt = $this->db()->prepare(
             'SELECT ma.*, u.fullname, u.email, u.firstname, u.lastname, u.middle_initial as user_mi
              FROM membership_applications ma
@@ -165,8 +214,20 @@ final class MembershipApplication extends Model
         return $row ?: null;
     }
 
-    public function findAll(): array
+    public function findAll(?int $gymOwnerId = null): array
     {
+        $this->ensureTableSchema();
+        if ($gymOwnerId !== null && $gymOwnerId > 0) {
+            $stmt = $this->db()->prepare(
+                'SELECT ma.*, u.fullname, u.email FROM membership_applications ma
+                 JOIN users u ON u.id = ma.user_id 
+                 WHERE ma.gym_owner_id = :goid
+                 ORDER BY ma.created_at DESC'
+            );
+            $stmt->execute([':goid' => $gymOwnerId]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+
         return $this->db()->query(
             'SELECT ma.*, u.fullname, u.email FROM membership_applications ma
              JOIN users u ON u.id = ma.user_id ORDER BY ma.created_at DESC'

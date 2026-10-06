@@ -121,6 +121,15 @@ require __DIR__ . '/../partials/header.php';
         </div>
     </div>
 </div>
+<?php else: ?>
+<div class="card mb-3 mb-md-4">
+    <div class="card-header px-3 py-2.5"><h2 class="h6 mb-0 fw-bold"><i class="bi bi-bar-chart me-2 text-success"></i>Monthly Revenue Breakdown</h2></div>
+    <div class="card-body text-center py-4 text-muted">
+        <i class="bi bi-graph-up text-muted fs-3 d-block mb-2"></i>
+        <div class="fw-medium">No Revenue Records Yet</div>
+        <div class="small">Revenue from new members will appear here once applications are approved.</div>
+    </div>
+</div>
 <?php endif; ?>
 
 <!-- Revenue Tracking (Category Breakdown) -->
